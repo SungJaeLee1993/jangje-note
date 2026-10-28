@@ -350,6 +350,12 @@ nav .plus:active{transform:scale(.93)}
 .sk{border-radius:var(--r);background:linear-gradient(90deg,#E9EBF0 25%,#F2F3F6 50%,#E9EBF0 75%);background-size:200% 100%;animation:shimmer 1.2s infinite linear}
 @keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* 홈 상단: 음영 없는 밝은 헤더 */
+.hero{background:transparent!important;color:var(--ink)!important;box-shadow:none!important;border-radius:0!important;padding-bottom:28px!important}
+.hero .hi{color:var(--sub2)!important;opacity:1!important}.hero h2{color:var(--ink)}
+.hero .iconbtn,.hero .mode{background:#fff!important;color:var(--sub2)!important;box-shadow:none!important}
+.hero .mode.warn{color:var(--bad)!important}
+.searchbar{margin-top:0!important;box-shadow:none!important;background:#fff!important}
 .hidden{display:none!important}
 </style>
 </head>
