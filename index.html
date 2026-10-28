@@ -270,7 +270,8 @@ nav{background:rgba(255,255,255,.62)!important;backdrop-filter:blur(24px) satura
 .stick + *{margin-top:16px}
 .stick .search{margin-top:4px}
 .stick .chips{margin-bottom:0;padding-bottom:10px}
-.stick .strip{margin-bottom:0}
+.stick .strip{margin-bottom:0;padding-bottom:16px}
+.dayrow{display:flex;justify-content:space-between;align-items:center;padding:2px 2px 12px;font-size:14px;color:var(--sub2)}
 .scrim{cursor:pointer;touch-action:none}
 .sheet{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .grab{padding:10px 20px;margin:-10px auto 4px;width:80px;height:25px;background-clip:content-box;box-sizing:border-box;cursor:grab}
@@ -726,8 +727,8 @@ function renderLogs(){
   const has=new Set(S.logs.map(l=>l.date));
   const list=S.logs.filter(l=>!logDay || l.date===logDay);
   $("#view").innerHTML = `
-    <div class="stick"><div class="strip" id="strip">${days.map(d=>{ const dt=new Date(d+"T00:00:00"); return `<button class="${logDay===d?"on":""} ${has.has(d)?"has":""}" data-logday="${d}"><b>${dt.getDate()}</b>${"일월화수목금토"[dt.getDay()]}<i></i></button>`; }).join("")}</div></div>
-    ${logDay?`<div class="row" style="justify-content:space-between;margin:-6px 2px 16px"><span style="color:var(--sub2);font-size:14px">${fmtDate(logDay)} 기록</span><button class="link" data-logday="">전체 보기</button></div>`:""}
+    <div class="stick"><div class="strip" id="strip">${days.map(d=>{ const dt=new Date(d+"T00:00:00"); return `<button class="${logDay===d?"on":""} ${has.has(d)?"has":""}" data-logday="${d}"><b>${dt.getDate()}</b>${"일월화수목금토"[dt.getDay()]}<i></i></button>`; }).join("")}</div>
+    ${logDay?`<div class="dayrow"><span>${fmtDate(logDay)} 기록</span><button class="link" data-logday="">전체 보기</button></div>`:""}</div>
     ${list.length?`<div class="tl">${list.map((l,i)=>{
       const ph=(l.photos||[]).slice(0,4);
       return `<button class="ev ${i===0?"first":""}" data-open-log="${l.id}"><div class="box ${i===0?"dark":""}">${i===0?waves(.13):""}
@@ -1400,7 +1401,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.29-3";
+const APP_VERSION="2026.10.29-4";
 let swReg=null;
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{swReg=r;}).catch(()=>{});
 async function checkUpdate(manual){
