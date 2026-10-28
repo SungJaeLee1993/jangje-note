@@ -652,7 +652,7 @@ function renderHome(){
     <div class="sec"><h2>오늘</h2><button class="link" data-go="timer">기록 보기</button></div>
     <div class="hscroll">
       <button class="tile dark" data-act="startReview">${waves(.12)}<span class="ic">${svg("cards",22)}</span><span class="tt">암기카드 복습</span><span class="dd">${due?`오늘 ${due}장이 기다리고 있어요`:S.cards.length?"오늘 복습 끝!":"카드를 추가해 보세요"}</span><span class="arrow">${svg("arrow",20)}</span></button>
-      <button class="tile soft" data-go="timer"><span class="ic">${svg("timer",22)}</span><span class="tt">공부 타이머</span><span class="dd">오늘 공부한 시간</span><span class="big">${fmtMin(today)}</span></button>
+      <button class="tile white" data-go="timer"><span class="ic">${svg("timer",22)}</span><span class="tt">공부 타이머</span><span class="dd">오늘 공부한 시간</span><span class="big">${fmtMin(today)}</span></button>
       <button class="tile white" data-go="logs"><span class="ic">${svg("logs",22)}</span><span class="tt">연속 기록</span><span class="dd">실습 ${S.logs.length}회 · 노트 ${S.notes.length}개</span><span class="big">${streak()}일</span></button>
     </div>
     <div class="sec" style="margin-top:12px"><h2>체크리스트</h2><button class="link" data-go="todos">전체 보기${S.todos.filter(t=>!t.done).length?` (${S.todos.filter(t=>!t.done).length})`:""}</button></div>
@@ -1349,7 +1349,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.28-9";
+const APP_VERSION="2026.10.28-10";
 let swReg=null;
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{swReg=r;}).catch(()=>{});
 async function checkUpdate(manual){
