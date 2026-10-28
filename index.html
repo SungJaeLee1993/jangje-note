@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="장제노트">
-<meta name="theme-color" content="#F5F6F8">
+<meta name="theme-color" content="#2B2B2B">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -219,10 +219,55 @@ textarea.in-f{min-height:120px;resize:vertical}
 .updbar span{font-size:13px;opacity:.75}
 .vh{position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0}
 .addph{cursor:pointer}
+.vidfail{font-size:13px;color:var(--sub);margin-top:6px}
+.gal{position:relative;margin-top:14px}
+.gtrack{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;border-radius:var(--r);scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.gtrack::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100%;scroll-snap-align:center;height:min(92vw,440px);background:#111;display:flex;align-items:center;justify-content:center;position:relative;padding:0;border:0}
+.slide img{width:100%;height:100%;object-fit:contain;display:block}
+.gcount{position:absolute;top:12px;right:12px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;pointer-events:none}
+.gdots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.gdots i{width:6px;height:6px;border-radius:3px;background:#CDD1D9;transition:all .2s}
+.gdots i.on{width:18px;background:var(--ink)}
+.vt{position:relative;display:block;width:100%;height:100%;background:#1c1c1e;border-radius:inherit;overflow:hidden}
+.vt img{width:100%;height:100%;object-fit:cover;display:block}
+.vt.big img{object-fit:contain}
+.vt img.noimg{visibility:hidden}
+.vt .pl{position:absolute;left:50%;top:50%;width:30%;max-width:64px;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.vt .pl:after{content:"";position:absolute;left:54%;top:50%;transform:translate(-50%,-50%);border-style:solid;border-width:9px 0 9px 15px;border-color:transparent transparent transparent #fff}
+.vt:not(.big) .pl:after{border-width:6px 0 6px 10px}
+.slide .dur{position:absolute;right:12px;bottom:12px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;font-weight:600;padding:3px 8px;border-radius:8px}
+.slide .dur:empty{display:none}
+.thumbs .vt{width:52px;height:52px;border-radius:12px;flex:0 0 auto}
+.ph .vt{width:80px;height:80px;border-radius:14px}
+.fcap{font-size:13px;font-weight:600;color:var(--sub2);margin:18px 2px 8px}
+.segf{display:flex;background:#E9EBF0;border-radius:14px;padding:4px;gap:2px}
+.segf button{flex:1;min-width:0;padding:10px 4px;border-radius:11px;font-size:14px;font-weight:600;color:var(--sub2);white-space:nowrap}
+.segf button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow-s)}
+.btn.big{padding:17px 18px;font-size:16px;border-radius:18px}
+/* A안: 웨이브 제거, 다크 카드 빛 번짐, 떠 있는 요소만 유리 */
+.dark,.hero,.tile.dark{background:radial-gradient(130% 100% at 100% 0%,#55555b 0%,#343437 35%,#2B2B2B 70%)}
+nav{background:rgba(255,255,255,.62)!important;backdrop-filter:blur(24px) saturate(180%)!important;-webkit-backdrop-filter:blur(24px) saturate(180%)!important;border-top:1px solid rgba(255,255,255,.7)}
+.sheet{background:rgba(246,247,249,.8);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);border-top:1px solid rgba(255,255,255,.8)}
+.scrim{background:rgba(20,22,30,.2)}
+.updbar{background:rgba(255,255,255,.78);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%)}
+.gcount{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);background:rgba(0,0,0,.4)}
+/* 학습 탭: 밑줄형 */
+.seg{background:transparent;border-radius:0;padding:0;border-bottom:1px solid #E1E3E8;margin-bottom:20px;gap:0}
+.seg button{border-radius:0;padding:12px 0 14px;font-size:16px;font-weight:700;color:#A3A6AD;position:relative;background:none}
+.seg button.on{color:var(--ink);background:none;box-shadow:none}
+.seg button.on:after{content:"";position:absolute;left:22%;right:22%;bottom:-1px;height:3px;border-radius:3px;background:var(--ink)}
+/* 필터 탭: 작게 */
+.segf{padding:3px;border-radius:12px}
+.segf button{padding:8px 4px;font-size:13.5px;border-radius:9px}
+/* 상태바(시간·배터리) 뒤 색 */
+.statusbar{position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top,0px);background:#2B2B2B;z-index:35;transition:opacity .2s}
+.statusbar.clear{opacity:0}
 .hidden{display:none!important}
 </style>
 </head>
 <body>
+<div class="statusbar" id="statusbar"></div>
 <div class="app">
   <header>
     <div><div class="hsub" id="hsub"></div><h1 id="title"></h1></div>
@@ -302,7 +347,7 @@ async function del(col, id){
   S[col] = S[col].filter(x=>x.id!==id); render();
   try{ await idbDel(col,id); for(const m of mediaIds(old)) await dropMedia(m); }catch(e){ toast("삭제 실패"); }
 }
-async function dropMedia(id){ try{ await idbDel("media",id); }catch(e){} if(URLS[id]){ URL.revokeObjectURL(URLS[id]); delete URLS[id]; } }
+async function dropMedia(id){ for(const k of [id,id+"_t"]){ try{ await idbDel("media",k); }catch(e){} if(URLS[k]){ URL.revokeObjectURL(URLS[k]); delete URLS[k]; } } }
 
 async function init(){
   render();
@@ -310,10 +355,10 @@ async function init(){
     idb = await openIDB();
     for(const c of COLS) S[c] = await idbAll(c);
     const media = await idbAll("media");
-    const used = new Set(COLS.flatMap(c=>S[c].flatMap(mediaIds)));
+    const used = new Set(COLS.flatMap(c=>S[c].flatMap(mediaIds))); [...used].forEach(id=>used.add(id+"_t"));
     for(const m of media){
       if(!used.has(m.id)){ await idbDel("media",m.id); continue; }   // clean up unsaved uploads
-      URLS[m.id] = URL.createObjectURL(mediaBlob(m));
+      URLS[m.id] = URL.createObjectURL(mediaBlob(m)); if(m.type==="thumb") META[m.id.replace(/_t$/,"")]={dur:m.dur};
     }
     sortAll();
     let persisted=false;
@@ -345,7 +390,7 @@ function compress(file, max, q){
 }
 const MAX_VIDEO = 300*1024*1024;
 async function photoFromFile(file){
-  const isV = file.type.startsWith("video/");
+  const isV = file.type.startsWith("video/") || /\.(mov|mp4|m4v|3gp)$/i.test(file.name||"");
   if(isV && file.size>MAX_VIDEO) throw new Error(`영상이 너무 커요 (${(file.size/1048576).toFixed(0)}MB). 300MB 이하로 잘라 주세요`);
   let blob = file;
   if(!isV){
@@ -353,20 +398,99 @@ async function photoFromFile(file){
     catch(e){ if(file.size>20*1024*1024) throw new Error("사진을 읽지 못했어요. 다른 사진으로 해 주세요"); blob=file; }   // e.g. HEIC that can't be drawn: keep original
   }
   const id = uid();
-  const mime = blob.type || (isV ? "video/mp4" : "image/jpeg");
+  const ext=(file.name||"").split(".").pop().toLowerCase();
+  const mime = blob.type || (isV ? (ext==="mov"?"video/quicktime":"video/mp4") : (ext==="heic"?"image/heic":"image/jpeg"));
   let data;
   try{ data = await blob.arrayBuffer(); }catch(e){ throw new Error("파일을 읽지 못했어요"); }
   // store raw bytes (iOS Safari can fail to keep File/Blob objects in IndexedDB)
   try{ await idbPut("media",{ id, data, type: isV?"video":"image", mime, createdAt:Date.now() }); }
   catch(e){ throw new Error(e?.name==="QuotaExceededError" ? "폰 저장 공간이 부족해요" : "저장하지 못했어요 ("+(e?.name||"오류")+")"); }
   URLS[id] = URL.createObjectURL(new Blob([data],{type:mime}));
+  if(isV){ try{ await ensureThumb(id); }catch(e){} }
   return { mediaId:id, type: isV?"video":"image" };
 }
 const mediaBlob = m => m.blob || new Blob([m.data],{type:m.mime||"application/octet-stream"});
 const isVid = p => p.type==="video";
 const photoSrc = p => URLS[p.mediaId] || "";
-const media = p => isVid(p) ? `<video class="viewimg" src="${esc(photoSrc(p))}#t=0.1" controls playsinline preload="metadata"></video>` : `<img class="viewimg" src="${esc(photoSrc(p))}" alt="">`;
-const thumb = p => isVid(p) ? `<span class="tv"><video src="${esc(photoSrc(p))}#t=0.1" muted playsinline preload="metadata"></video></span>` : `<img src="${esc(photoSrc(p))}" alt="">`;
+const META={};                       // videoId -> {dur}
+const fmtDur = d => { if(!(d>0)) return ""; d=Math.round(d); return `${Math.floor(d/60)}:${pad(d%60)}`; };
+const tsrc = id => URLS[id+"_t"] || "";
+const thumbPending=new Set();
+function makeThumb(url){
+  return new Promise((res,rej)=>{
+    const v=document.createElement("video"); let done=false;
+    v.muted=true; v.playsInline=true; v.setAttribute("playsinline",""); v.preload="auto";
+    v.style.cssText="position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0";
+    const fin=(f,x)=>{ if(done) return; done=true; clearTimeout(to); v.remove(); f(x); };
+    const to=setTimeout(()=>fin(rej,new Error("timeout")),9000);
+    v.addEventListener("loadeddata",()=>{ try{ v.currentTime=Math.min(0.1,(v.duration||1)/2); }catch(e){ fin(rej,e); } });
+    v.addEventListener("seeked",()=>{
+      try{ const w=v.videoWidth,h=v.videoHeight; if(!w) return fin(rej,new Error("no frame"));
+        const k=Math.min(1,720/Math.max(w,h)); const c=document.createElement("canvas"); c.width=Math.round(w*k); c.height=Math.round(h*k);
+        c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+        c.toBlob(b=>b?fin(res,{blob:b,dur:v.duration}):fin(rej,new Error("blob")),"image/jpeg",.78);
+      }catch(e){ fin(rej,e); } });
+    v.addEventListener("error",()=>fin(rej,new Error("decode")));
+    document.body.appendChild(v); v.src=url; v.load();
+  });
+}
+async function ensureThumb(id){
+  if(URLS[id+"_t"] || thumbPending.has(id) || !URLS[id]) return;
+  thumbPending.add(id);
+  try{
+    const {blob,dur}=await makeThumb(URLS[id]);
+    const data=await blob.arrayBuffer();
+    await idbPut("media",{ id:id+"_t", data, type:"thumb", mime:"image/jpeg", dur, createdAt:Date.now() });
+    URLS[id+"_t"]=URL.createObjectURL(new Blob([data],{type:"image/jpeg"})); META[id]={dur};
+    document.querySelectorAll(`[data-thumbfor="${id}"]`).forEach(el=>{ el.src=URLS[id+"_t"]; el.classList.remove("noimg"); });
+    document.querySelectorAll(`[data-durfor="${id}"]`).forEach(el=>{ el.textContent=fmtDur(dur); });
+  }catch(e){ console.warn("thumb",e); }
+  finally{ thumbPending.delete(id); }
+}
+const vthumb = (p,cls="") => { if(!tsrc(p.mediaId)) setTimeout(()=>ensureThumb(p.mediaId),50);
+  return `<span class="vt ${cls}"><img data-thumbfor="${esc(p.mediaId)}" class="${tsrc(p.mediaId)?"":"noimg"}" src="${esc(tsrc(p.mediaId))}" alt=""><i class="pl"></i></span>`; };
+const thumb = p => isVid(p) ? vthumb(p) : `<img src="${esc(photoSrc(p))}" alt="">`;
+function gallery(list){
+  list=(list||[]).filter(p=>p && (p.mediaId? URLS[p.mediaId] : p.src)); if(!list.length) return "";
+  const n=list.length;
+  const slide = p => isVid(p)
+    ? `<button class="slide vslide" data-playvid="${esc(p.mediaId)}">${vthumb(p,"big")}<span class="dur" data-durfor="${esc(p.mediaId)}">${fmtDur(META[p.mediaId]?.dur)}</span></button>`
+    : `<div class="slide"><img src="${esc(p.src||photoSrc(p))}" alt=""></div>`;
+  return `<div class="gal"><div class="gtrack" data-gal>${list.map(slide).join("")}</div>${n>1?`<span class="gcount">1 / ${n}</span><div class="gdots">${list.map((_,i)=>`<i class="${i?"":"on"}"></i>`).join("")}</div>`:""}</div>`;
+}
+document.addEventListener("scroll",e=>{
+  const t=e.target; if(!(t instanceof Element) || !t.matches("[data-gal]")) return;
+  const i=Math.round(t.scrollLeft/t.clientWidth), g=t.parentElement;
+  g.querySelectorAll(".gdots i").forEach((d,k)=>d.classList.toggle("on",k===i));
+  const c=g.querySelector(".gcount"); if(c) c.textContent=`${i+1} / ${t.children.length}`;
+},true);
+async function playVideo(id){
+  const url=URLS[id]; if(!url) return toast("영상을 찾을 수 없어요");
+  const v=document.createElement("video");
+  v.src=url; v.controls=true; v.setAttribute("controls",""); v.preload="auto";
+  v.style.cssText="position:fixed;inset:0;width:100%;height:100%;background:#000;z-index:200";
+  const close=()=>{ try{ v.pause(); }catch(e){} v.remove(); };
+  v.addEventListener("webkitendfullscreen",close); v.addEventListener("ended",()=>{ if(!document.fullscreenElement && !v.webkitDisplayingFullscreen) close(); });
+  v.addEventListener("click",e=>e.stopPropagation());
+  v.addEventListener("error",()=>{ close(); videoFail(id); },{once:true});
+  document.body.appendChild(v);
+  try{
+    if(v.webkitEnterFullscreen){ await v.play(); try{ v.webkitEnterFullscreen(); }catch(e){} }
+    else { await v.play(); v.requestFullscreen?.().catch(()=>{}); document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement) close(); },{once:true}); }
+  }catch(e){ if(e.name!=="AbortError"){ close(); videoFail(id); } }
+}
+let failVid=null;
+function videoFail(id){
+  failVid=id;
+  openSheet(`${head("영상 재생")}<div class="card" style="text-align:center"><div style="font-size:36px">🎞️</div><b>이 영상은 앱에서 재생할 수 없어요</b><div style="font-size:14px;color:var(--sub);margin:6px 0 16px">영상은 저장되어 있어요. 사진 앱으로 보내서 볼 수 있어요.</div><button class="btn block" data-act="shareVid">사진 앱에 저장 · 공유</button></div>`);
+}
+async function shareVideo(id){
+  try{
+    const m=(await idbAll("media")).find(x=>x.id===id); if(!m) return toast("영상을 찾을 수 없어요");
+    const ext=/quicktime/.test(m.mime)?"mov":"mp4"; const f=new File([mediaBlob(m)],`장제노트-영상.${ext}`,{type:m.mime});
+    if(navigator.canShare?.({files:[f]})) await navigator.share({files:[f]}); else toast("이 기기에서는 공유할 수 없어요");
+  }catch(e){ if(e.name!=="AbortError") toast("공유하지 못했어요"); }
+}
 
 /* ---------- backup ---------- */
 const blobToB64 = b => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(b); });
@@ -453,7 +577,7 @@ const ICONS = {
   gear:'<circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" fill="none" stroke="currentColor" stroke-width="1.7"/>'
 };
 const svg = (k,s=22) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}">${ICONS[k]}</svg>`;
-function waves(op=.16){
+function waves(op=.16){ return "";
   let d="";
   for(let i=0;i<14;i++){
     const y=40+i*7, a=26+i*1.6, ph=i*.22;
@@ -481,13 +605,15 @@ function render(){
   drawNav();
   const titles={home:"장제노트",notes:"Notes",logs:"Today",cards:"Cards",timer:"Timer"};
   const subs={notes:"공부 노트",logs:"실습·견학 일지",cards:"학습",timer:"공부 타이머",todos:"체크리스트"};
-  $(".app").classList.toggle("home", tab==="home");
+  $(".app").classList.toggle("home", tab==="home"); updStatus();
   $("#title").textContent = tab==="logs" ? "실습 일지" : (subs[tab]||"");
   $("#hsub").textContent = fmtLong(ymd());
   $("#modeSlot").innerHTML = modeBadge();
   ({home:renderHome,notes:renderNotes,logs:renderLogs,cards:renderStudy,timer:renderTimer,todos:renderTodos})[tab]();
-  updateBadge();
+  updateBadge(); updStatus();
 }
+function updStatus(){ const sb=$("#statusbar"); if(!sb) return; const h=$(".hero"); sb.classList.toggle("clear", tab==="home" && (!h || window.scrollY < h.offsetHeight-60)); }
+window.addEventListener("scroll",()=>updStatus(),{passive:true});
 const fmtLong = s => { const d=new Date(s+"T00:00:00"); return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`; };
 
 function renderHome(){
@@ -765,26 +891,35 @@ function quizPool(){
   return [...mine, ...fromCards];
 }
 function renderQuizHome(){
-  const mine=S.questions.filter(q=>!q.fromCard);
-  const tries=S.questions.reduce((a,q)=>a+(q.tries||0),0), rights=S.questions.reduce((a,q)=>a+(q.rights||0),0);
+  const mine=S.questions.filter(q=>!q.fromCard && !q.bank);
+  const own=S.questions.filter(q=>!q.bank);
+  const tries=own.reduce((a,q)=>a+(q.tries||0),0), rights=own.reduce((a,q)=>a+(q.rights||0),0);
   const cats=["전체",...new Set([...mine.map(q=>q.cat||"기타"), ...(quizUseCards?S.cards.map(c=>c.cat||"기타"):[])])];
-  const pool=quizPool();
+  const pool=quizPool(), nPool=quizN?Math.min(quizN,pool.length):pool.length;
   const st=S.questions.filter(x=>x.bank), bt=st.reduce((a,x)=>a+(x.tries||0),0), br=st.reduce((a,x)=>a+(x.rights||0),0);
+  const bl=bankList().length;
+  const seg=(arr,cur,attr,label=x=>x)=>`<div class="segf">${arr.map(v=>`<button class="${cur===v?"on":""}" ${attr}="${esc(v)}">${esc(label(v))}</button>`).join("")}</div>`;
   $("#view").innerHTML = studySeg()+`
-    ${BANK.length?`<div class="card dark" style="padding:22px;border-radius:var(--r-xl)">${waves(.12)}
+    ${BANK.length?`
+    <div class="card dark" style="padding:22px;border-radius:var(--r-xl);margin-bottom:6px">${waves(.12)}
       <div style="font-size:14px;opacity:.7">장제사 필기 기출 · 공식 정답 + 해설</div>
-      <div class="row" style="justify-content:space-between;margin:2px 0 6px"><div style="font-size:34px;font-weight:800">${bankList().length}문제</div><button class="btn white" data-act="bankStart" ${bankList().length?"":"disabled"}>풀기 시작</button></div>
-      <div class="frow"><span class="fl">회차</span><div class="chips">${["전체",...new Set(BANK.map(q=>q.exam))].map(c=>`<button class="chip ${bankExam===c?"on":""}" data-bankexam="${esc(c)}">${c==="전체"?"전체":esc(c.replace(/\(.*\)/,""))}<small>${BANK.filter(q=>(c==="전체"||q.exam===c)&&(bankSubj==="전체"||q.subj===bankSubj)).length}</small></button>`).join("")}</div></div>
-      <div class="frow"><span class="fl">과목</span><div class="chips">${["전체","장제학","해부·생리","상식"].map(c=>`<button class="chip ${bankSubj===c?"on":""}" data-banksubj="${esc(c)}">${esc(c)}<small>${BANK.filter(q=>(bankExam==="전체"||q.exam===bankExam)&&(c==="전체"||q.subj===c)).length}</small></button>`).join("")}</div></div>
-      <div style="font-size:12.5px;opacity:.6;margin-top:4px">9·10회 · 개정 가능성 있는 법규 문제 제외${bt?` · 누적 정답률 ${Math.round(br/bt*100)}%`:""}</div>
-    </div>`:""}
-    <div class="card">
-      <div class="row" style="justify-content:space-between;margin-bottom:6px"><div><b style="font-size:17px">내 문제 · 카드 문제</b><div style="font-size:13px;color:var(--sub);margin-top:2px">출제 가능 ${pool.length}문제${tries?` · 정답률 ${Math.round(rights/tries*100)}%`:""}</div></div><button class="btn" data-act="quizStart" ${pool.length?"":"disabled"}>풀기</button></div>
-      <div class="frow"><span class="fl">범위</span><div class="chips">${cats.map(c=>`<button class="chip ${quizCat===c?"on":""}" data-quizcat="${esc(c)}">${esc(c)}</button>`).join("")}</div></div>
-      <div class="frow"><span class="fl">문항</span><div class="chips">${[5,10,20,0].map(n=>`<button class="chip ${quizN===n?"on":""}" data-quizn="${n}">${n?n+"문제":"전부"}</button>`).join("")}</div></div>
-      <label class="item dot" style="margin:14px 0 0;box-shadow:none;background:var(--tint);cursor:pointer"><span class="tx"><div class="t" style="font-size:15px">암기카드로 문제 자동 만들기</div><div class="m">카드 4장 이상이면 객관식으로 섞어서 출제</div></span><input type="checkbox" id="qUseCards" ${quizUseCards?"checked":""} style="width:22px;height:22px;accent-color:#2B2B2B"></label>
+      <div style="font-size:34px;font-weight:800;margin:2px 0 4px">${bl}문제</div>
+      <div style="font-size:13px;opacity:.6">9·10회 · 개정 가능성 있는 법규 문제 제외${bt?` · 누적 정답률 ${Math.round(br/bt*100)}%`:""}</div>
     </div>
-    <div class="sec"><h2>내 문제</h2><button class="link" data-act="newQuestion">+ 문제 만들기</button></div>
+    <div class="fcap">회차</div>
+    ${seg(["전체",...new Set(BANK.map(q=>q.exam))],bankExam,"data-bankexam",v=>v==="전체"?"전체":v.replace(/\(.*\)/,""))}
+    <div class="fcap">과목</div>
+    ${seg(["전체","장제학","해부·생리","상식"],bankSubj,"data-banksubj")}
+    <button class="btn block big" style="margin-top:16px" data-act="bankStart" ${bl?"":"disabled"}>${bl}문제 풀기</button>`:""}
+    <div class="sec" style="margin-top:34px"><h2>내 문제 · 카드 문제</h2><button class="link" data-act="newQuestion">+ 문제 만들기</button></div>
+    <div style="font-size:13px;color:var(--sub);margin:-8px 2px 0">출제 가능 ${pool.length}문제${tries?` · 정답률 ${Math.round(rights/tries*100)}%`:""}</div>
+    <div class="fcap">범위</div>
+    <div class="chips" style="margin-bottom:0">${cats.map(c=>`<button class="chip ${quizCat===c?"on":""}" data-quizcat="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+    <div class="fcap">문항 수</div>
+    ${seg(["5","10","20","0"],String(quizN),"data-quizn",v=>v==="0"?"전부":v+"문제")}
+    <label class="item dot" style="margin:14px 0 0;cursor:pointer"><span class="tx"><div class="t" style="font-size:15px">암기카드로 문제 자동 만들기</div><div class="m">카드 4장 이상이면 객관식으로 섞어서 출제</div></span><input type="checkbox" id="qUseCards" ${quizUseCards?"checked":""} style="width:22px;height:22px;accent-color:#2B2B2B"></label>
+    <button class="btn block big" style="margin-top:16px" data-act="quizStart" ${pool.length?"":"disabled"}>${pool.length?`${nPool}문제 풀기`:"출제할 문제가 없어요"}</button>
+    <div class="sec" style="margin-top:34px"><h2>내가 만든 문제 ${mine.length?mine.length:""}</h2></div>
     ${mine.map(q=>`<button class="item" data-open-q="${q.id}"><div class="t">${esc(q.q)}</div><div class="m"><span class="tag">${esc(q.cat||"기타")}</span>${QTYPES[q.type]}${q.tries?` · ${q.rights||0}/${q.tries} 정답`:""}${q.inWrong?" · 오답노트":""}</div></button>`).join("") || `<div class="empty" style="padding:20px">교재·강의에서 나온 문제를 직접 만들어 보세요<br><small>객관식·O/X·주관식, 해설과 출처까지</small></div>`}`;
   $("#qUseCards").onchange=e=>{ quizUseCards=e.target.checked; render(); };
 }
@@ -813,7 +948,7 @@ function renderQuiz(){
       <div style="margin-bottom:10px">${q.bank?`<span class="tag">${esc(q.exam)} ${q.no}번</span>`:""}<span class="tag">${esc(q.cat||"기타")}</span>${q.bank?"":`<span class="tag">${QTYPES[q.type]}</span>`}${q.inWrong?`<span class="tag" style="color:var(--bad)">오답 ${q.wrongs||1}회</span>`:""}</div>
       <div style="font-size:19px;font-weight:700;line-height:1.45;white-space:pre-wrap">${esc(q.q)}</div>
       ${qExtra(q)}
-      ${(q.photos||[]).map(media).join("")}
+      ${gallery(q.photos)}
     </div>
     ${q.type==="mc"?`<div class="choices">${q.choices.map((c,i)=>choiceBtn(c,i,i)).join("")}</div>`:""}
     ${q.type==="ox"?`<div class="grid2">${choiceBtn("O","O")}${choiceBtn("X","X")}</div>`:""}
@@ -921,7 +1056,7 @@ function viewNote(n){
   openSheet(`${head("노트",`<button class="link" data-act="editNote" data-id="${n.id}">편집</button>`)}
     <span class="tag">${esc(n.cat||"기타")}</span><h2 style="margin:8px 0 12px">${esc(n.title||"제목 없음")}</h2>
     <div class="view-body">${esc(n.body)}</div>
-    ${(n.photos||[]).map(media).join("")}`);
+    ${gallery(n.photos)}`);
 }
 let draftPhotos=[];
 function editNote(n){
@@ -941,7 +1076,7 @@ function viewLog(l){
   openSheet(`${head("실습 일지",`<button class="link" data-act="editLog" data-id="${l.id}">편집</button>`)}
     <div style="color:var(--sub);font-size:14px">${fmtDate(l.date)}</div><h2 style="margin:4px 0 6px">${esc(l.title||"실습 기록")}</h2>
     ${row("장소",l.place)}${row("함께한 장제사·선생님",l.mentor)}${row("말 정보",l.horse)}${row("한 일",l.did)}${row("배운 점",l.learned)}${row("다음에 할 것·질문",l.next)}
-    ${(l.photos||[]).map(media).join("")}`);
+    ${gallery(l.photos)}`);
 }
 function editLog(l){
   l = l || { id:uid(), date:ymd(), title:"", place:"", mentor:"", horse:"", did:"", learned:"", next:"", photos:[], createdAt:Date.now() };
@@ -985,7 +1120,7 @@ function editSession(s){
 let sheetCtx=null;
 function drawPh(){
   const el=$("#ph"); if(!el) return;
-  el.innerHTML = draftPhotos.map((p,i)=>`<div class="p ${isVid(p)?"pv":""}">${isVid(p)?`<video src="${esc(photoSrc(p))}#t=0.1" muted playsinline preload="metadata"></video>`:`<img src="${esc(photoSrc(p))}" alt="">`}<button class="x" data-rmph="${i}">✕</button></div>`).join("") + (draftPhotos.length<8?`<label class="addph" for="fileIn">＋</label>`:"");
+  el.innerHTML = draftPhotos.map((p,i)=>`<div class="p">${isVid(p)?vthumb(p):`<img src="${esc(photoSrc(p))}" alt="">`}<button class="x" data-rmph="${i}">✕</button></div>`).join("") + (draftPhotos.length<8?`<label class="addph" for="fileIn">＋</label>`:"");
 }
 $("#fileIn").onchange = async e=>{
   const files=[...e.target.files].slice(0,8-draftPhotos.length); e.target.value="";
@@ -1036,7 +1171,7 @@ async function addStarter(){
 
 /* ---------- events ---------- */
 document.addEventListener("click", async e=>{
-  const el=e.target.closest("[data-act],[data-go],[data-open-note],[data-open-log],[data-open-card],[data-open-session],[data-open-todo],[data-toggle-todo],[data-todofilter],[data-study],[data-quizcat],[data-quizn],[data-wrongcat],[data-bankexam],[data-banksubj],[data-open-q],[data-pick],[data-qtype],[data-notecat],[data-logday],[data-cardcat],[data-topic],[data-rmph]");
+  const el=e.target.closest("[data-act],[data-go],[data-open-note],[data-open-log],[data-open-card],[data-open-session],[data-open-todo],[data-toggle-todo],[data-todofilter],[data-study],[data-quizcat],[data-quizn],[data-wrongcat],[data-bankexam],[data-banksubj],[data-open-q],[data-pick],[data-qtype],[data-notecat],[data-logday],[data-cardcat],[data-topic],[data-rmph],[data-playvid]");
   if(!el) return;
   const d=el.dataset;
   if(d.go){ tab=d.go; ls.set("fn_tab",tab); render(); window.scrollTo(0,0); return; }
@@ -1060,6 +1195,7 @@ document.addEventListener("click", async e=>{
   if(d.logday!=null){ logDay = (d.logday && logDay!==d.logday) ? d.logday : null; return render(); }
   if(d.cardcat){ cardCat=d.cardcat; return render(); }
   if(d.topic){ if(!runningTimer()){ ls.set("fn_topic",d.topic); render(); } return; }
+  if(d.playvid) return playVideo(d.playvid);
   if(d.rmph!=null){ draftPhotos.splice(+d.rmph,1); return drawPh(); }
   switch(d.act){
     case "close": return closeSheet();
@@ -1143,6 +1279,7 @@ document.addEventListener("click", async e=>{
     case "todoTpl": { const now=Date.now(); for(let i=0;i<TPL_PREP.length;i++) await put("todos",{ id:uid(), text:TPL_PREP[i], due:"", time:"", notify:false, done:false, createdAt:now+i }); todoFilter="open"; return toast("준비물 6개를 추가했어요"); }
     case "clearDone": { for(const t of S.todos.filter(x=>x.done)) await del("todos",t.id); return toast("완료 항목을 지웠어요"); }
     case "settings": return openSettings();
+    case "shareVid": return shareVideo(failVid);
     case "doUpdate": { toast("업데이트 중…"); try{ await swReg?.update?.(); const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }catch(e){} location.reload(); return; }
     case "checkUpdate": return checkUpdate(true);
     case "quickAdd": return quickAdd();
@@ -1159,7 +1296,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.28-4";
+const APP_VERSION="2026.10.28-7";
 let swReg=null;
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{swReg=r;}).catch(()=>{});
 async function checkUpdate(manual){
