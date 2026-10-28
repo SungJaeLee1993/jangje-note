@@ -269,7 +269,8 @@ nav{background:rgba(255,255,255,.62)!important;backdrop-filter:blur(24px) satura
 .stick .search{margin-top:4px}
 .stick .chips{margin-bottom:0;padding-bottom:10px}
 .stick .strip{margin-bottom:0}
-.scrim{cursor:pointer}
+.scrim{cursor:pointer;touch-action:none}
+.sheet{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .grab{padding:10px 20px;margin:-10px auto 4px;width:80px;height:25px;background-clip:content-box;box-sizing:border-box;cursor:grab}
 .fgal{width:100%;margin:-6px 0 14px}
 .fgal .gal{margin-top:0}
@@ -1066,9 +1067,13 @@ function readQuestionForm(){
 
 /* ---------- sheets ---------- */
 let onSheetClose=null;
-function openSheet(html){ sheetDirty=false; closeArm=false; $("#sheet").style.transform=""; $("#sheetBody").innerHTML=html; $("#scrim").style.display="block"; requestAnimationFrame(()=>$("#sheet").classList.add("open")); sheetOpen=true; $("#sheet").scrollTop=0; }
-function closeSheet(){ $("#sheet").style.transform=""; $("#sheet").classList.remove("open"); $("#scrim").style.display="none"; sheetOpen=false; if(pendingRender){pendingRender=false;} render(); }
-let sheetDirty=false, closeArm=false, armT=null;
+function openSheet(html){ lockScroll(); sheetDirty=false; closeArm=false; $("#sheet").style.transform=""; $("#sheetBody").innerHTML=html; $("#scrim").style.display="block"; requestAnimationFrame(()=>$("#sheet").classList.add("open")); sheetOpen=true; $("#sheet").scrollTop=0; }
+function closeSheet(){ unlockScroll(); $("#sheet").style.transform=""; $("#sheet").classList.remove("open"); $("#scrim").style.display="none"; sheetOpen=false; if(pendingRender){pendingRender=false;} render(); }
+let sheetDirty=false, closeArm=false, armT=null, lockY=null;
+/* background scroll lock while a sheet is open (iOS needs position:fixed on body) */
+function lockScroll(){ if(lockY!=null) return; lockY=window.scrollY; const b=document.body.style; b.position="fixed"; b.top=`-${lockY}px`; b.left="0"; b.right="0"; b.width="100%"; }
+function unlockScroll(){ if(lockY==null) return; const y=lockY; lockY=null; const b=document.body.style; b.position=""; b.top=""; b.left=""; b.right=""; b.width=""; window.scrollTo(0,y); }
+$("#scrim").addEventListener("touchmove",e=>{ if(e.cancelable) e.preventDefault(); },{passive:false});
 $("#sheet").addEventListener("input",()=>{ sheetDirty=true; });
 function requestClose(){
   if(sheetDirty && !closeArm){
@@ -1344,7 +1349,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.28-8";
+const APP_VERSION="2026.10.28-9";
 let swReg=null;
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{swReg=r;}).catch(()=>{});
 async function checkUpdate(manual){
