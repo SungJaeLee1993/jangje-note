@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="장제노트">
-<meta name="theme-color" content="#2B2B2B">
+<meta name="theme-color" content="#F5F6F8">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -261,8 +261,8 @@ nav{background:rgba(255,255,255,.62)!important;backdrop-filter:blur(24px) satura
 .segf{padding:3px;border-radius:12px}
 .segf button{padding:8px 4px;font-size:13.5px;border-radius:9px}
 /* 상태바(시간·배터리) 뒤 색 */
-.statusbar{display:none}
-.statusbar.clear{opacity:0}
+.statusbar{position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top,0px);background:#F5F6F8;z-index:35}
+.statusbar.clear{opacity:1}
 .stick{position:sticky;top:env(safe-area-inset-top,0px);z-index:25;margin:0 -20px;padding:6px 20px 0;background:rgba(245,246,248,.96);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%)}
 .stick .seg{margin:0 -20px;padding:0 4px!important}
 .stick .seg button.on:after{left:26%;right:26%}
@@ -1401,7 +1401,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.29-4";
+const APP_VERSION="2026.10.29-5";
 let swReg=null;
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{swReg=r;}).catch(()=>{});
 async function checkUpdate(manual){
