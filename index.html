@@ -78,10 +78,19 @@ h1{font-size:32px;letter-spacing:-.03em;margin:0;font-weight:800;line-height:1.1
 .btn.block{width:100%}
 .btn:disabled{opacity:.35}
 .row{display:flex;gap:8px;align-items:center}
-.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 20px 8px;margin:0 -20px 12px;scrollbar-width:none}.dark .chips{margin:0 0 12px;padding:2px 0 6px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 20px 2px;margin:0 -20px 16px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.card .chips{margin:0 -20px;padding:2px 20px}
+.dark .chips{margin:0 -22px;padding:2px 22px}
+.frow{display:flex;align-items:center;gap:4px;margin-top:12px}
+.frow .fl{flex:0 0 40px;font-size:13px;line-height:36px;font-weight:600;color:var(--sub)}
+.dark .frow .fl{color:rgba(255,255,255,.55)}
+.frow .chips{flex:1;min-width:0;margin:0 -22px 0 0;padding:2px 22px 2px 0}
+.card:not(.dark) .frow .chips{margin-right:-20px;padding-right:20px}
 .chips::-webkit-scrollbar{display:none}
-.chip{white-space:nowrap;background:var(--card);border-radius:99px;padding:8px 15px;font-size:14px;font-weight:500;color:var(--sub2);box-shadow:var(--shadow-s)}
-.chip.on{background:var(--primary);color:#fff}
+.chip{white-space:nowrap;flex:0 0 auto;background:var(--card);border-radius:99px;padding:8px 15px;font-size:14px;font-weight:500;color:var(--sub2);box-shadow:inset 0 0 0 1.5px var(--line)}
+.chip.on{background:var(--primary);color:#fff;box-shadow:none;font-weight:600}
+.chip small{font-size:12px;opacity:.6;margin-left:4px}
+.card:not(.dark) .chip:not(.on){background:var(--tint);box-shadow:none}
 .chip:disabled:not(.on){opacity:.45}
 .search{width:100%;border:0;background:var(--card);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;outline:none;box-shadow:var(--shadow-s)}
 .item{display:block;width:100%;text-align:left;background:var(--card);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow-s)}
@@ -173,6 +182,7 @@ textarea.in-f{min-height:120px;resize:vertical}
 .bars .d{font-size:11px;color:var(--sub);margin-top:6px}
 .bars .v{font-size:11px;color:var(--sub);margin-bottom:4px}
 .dark .chip{background:rgba(255,255,255,.12);color:rgba(255,255,255,.8);box-shadow:none}
+.dark .chip small{opacity:.5}
 .dark .chip.on{background:#fff;color:var(--primary)}
 .toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + var(--safe-b) + 28px);transform:translateX(-50%);background:var(--primary);color:#fff;padding:11px 18px;border-radius:14px;font-size:14px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;box-shadow:var(--shadow)}
 .toast.on{opacity:1}
@@ -542,7 +552,7 @@ function renderCards(){
       <div class="boxes">${boxes.map((n,i)=>`<div style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)"><b style="color:#fff">${n}</b>${i===0?"새 카드":i+"단계"}</div>`).join("")}</div>
     </div>
     ${S.cards.length===0?`<div class="card"><div style="font-weight:700;margin-bottom:4px">기본 용어 카드로 시작할까요?</div><div style="font-size:14px;color:var(--sub2);margin-bottom:14px">발굽 해부학·장비 기초 용어 ${STARTER.length}장. 들어간 뒤 자유롭게 수정·삭제 가능해요.</div><button class="btn ghost block" data-act="starter">기본 카드 추가</button></div>`:""}
-    ${S.cards.length?`<div class="chips" style="margin-top:6px">${cats.map(c=>`<button class="chip ${cardCat===c?"on":""}" data-cardcat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`:""}
+    ${S.cards.length?`<div class="chips">${cats.map(c=>`<button class="chip ${cardCat===c?"on":""}" data-cardcat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`:""}
     ${list.map(c=>`<button class="item" data-open-card="${c.id}"><div class="t">${esc(c.front)}</div><div class="m"><span class="tag">${esc(c.cat||"기타")}</span>${(c.box||0)===0?"새 카드":(c.box)+"단계"} · 다음 복습 ${c.due?fmtDate(c.due):"오늘"}</div></button>`).join("")}
     ${S.cards.length && !list.length?`<div class="empty">카드가 없어요</div>`:""}`;
 }
@@ -586,7 +596,7 @@ function renderTimer(){
   const total=S.sessions.reduce((a,s)=>a+(s.minutes||0),0);
   $("#view").innerHTML=`
     <div class="card dark" style="padding:22px;border-radius:var(--r-xl)">${waves(.12)}
-      <div class="chips" style="flex-wrap:wrap;justify-content:center">${STUDY_TOPICS.map(x=>`<button class="chip ${topic===x?"on":""}" data-topic="${x}" ${t?"disabled":""}>${x}</button>`).join("")}</div>
+      <div class="chips" style="flex-wrap:wrap;justify-content:center;margin:0">${STUDY_TOPICS.map(x=>`<button class="chip ${topic===x?"on":""}" data-topic="${x}" ${t?"disabled":""}>${x}</button>`).join("")}</div>
       <div class="clock" id="clock">${fmtClock(t?elapsed(t):0)}</div>
       <div style="text-align:center;opacity:.65;font-size:14px;margin-bottom:20px">${t?(t.start?"공부 중":"일시정지"):"시작을 눌러 주세요"}</div>
       ${!t?`<button class="btn white block" data-act="tStart">시작</button>`:
@@ -657,7 +667,7 @@ function renderTodos(){
       <div style="font-size:14px;opacity:.7">남은 할 일</div>
       <div class="row" style="justify-content:space-between;margin-top:2px"><div style="font-size:34px;font-weight:800">${open.length}개</div><div style="text-align:right;font-size:13px;opacity:.75">오늘 ${S.todos.filter(t=>todoState(t)==="today").length} · 지남 ${S.todos.filter(t=>todoState(t)==="over").length}</div></div>
     </div>
-    <div class="chips" style="margin-top:4px"><button class="chip ${todoFilter==="open"?"on":""}" data-todofilter="open">해야 할 것 ${open.length}</button><button class="chip ${todoFilter==="done"?"on":""}" data-todofilter="done">완료 ${done.length}</button><button class="chip" data-act="todoTpl">＋ 실습 준비물 템플릿</button></div>
+    <div class="chips"><button class="chip ${todoFilter==="open"?"on":""}" data-todofilter="open">해야 할 것 ${open.length}</button><button class="chip ${todoFilter==="done"?"on":""}" data-todofilter="done">완료 ${done.length}</button><button class="chip" data-act="todoTpl">＋ 실습 준비물 템플릿</button></div>
     ${todoFilter==="open"
       ? (open.length ? groups.map(([k,l])=>{ const g=open.filter(t=>todoState(t)===k); return g.length?`<div class="sec" style="margin:18px 2px 10px"><h2 style="font-size:16px">${l}</h2></div>${g.map(todoItem).join("")}`:""; }).join("") : `<div class="empty">아래 + 버튼으로 할 일을 추가해 보세요<br><small>준비물, 공부 계획, 견학 일정 등</small></div>`)
       : (done.length ? done.map(todoItem).join("")+`<button class="link" style="display:block;margin:16px auto" data-act="clearDone">완료 항목 모두 지우기</button>` : `<div class="empty">완료한 항목이 없어요</div>`)}`;
@@ -752,17 +762,15 @@ function renderQuizHome(){
     ${BANK.length?`<div class="card dark" style="padding:22px;border-radius:var(--r-xl)">${waves(.12)}
       <div style="font-size:14px;opacity:.7">장제사 필기 기출 · 공식 정답 + 해설</div>
       <div class="row" style="justify-content:space-between;margin:2px 0 6px"><div style="font-size:34px;font-weight:800">${bankList().length}문제</div><button class="btn white" data-act="bankStart" ${bankList().length?"":"disabled"}>풀기 시작</button></div>
-      <div class="chips" style="margin:8px 0 0">${["전체",...new Set(BANK.map(q=>q.exam))].map(c=>`<button class="chip ${bankExam===c?"on":""}" data-bankexam="${esc(c)}">${esc(c)}</button>`).join("")}</div>
-      <div class="chips" style="margin:0">${["전체","장제학","해부·생리","상식"].map(c=>`<button class="chip ${bankSubj===c?"on":""}" data-banksubj="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+      <div class="frow"><span class="fl">회차</span><div class="chips">${["전체",...new Set(BANK.map(q=>q.exam))].map(c=>`<button class="chip ${bankExam===c?"on":""}" data-bankexam="${esc(c)}">${c==="전체"?"전체":esc(c.replace(/\(.*\)/,""))}<small>${BANK.filter(q=>(c==="전체"||q.exam===c)&&(bankSubj==="전체"||q.subj===bankSubj)).length}</small></button>`).join("")}</div></div>
+      <div class="frow"><span class="fl">과목</span><div class="chips">${["전체","장제학","해부·생리","상식"].map(c=>`<button class="chip ${bankSubj===c?"on":""}" data-banksubj="${esc(c)}">${esc(c)}<small>${BANK.filter(q=>(bankExam==="전체"||q.exam===bankExam)&&(c==="전체"||q.subj===c)).length}</small></button>`).join("")}</div></div>
       <div style="font-size:12.5px;opacity:.6;margin-top:4px">9·10회 · 개정 가능성 있는 법규 문제 제외${bt?` · 누적 정답률 ${Math.round(br/bt*100)}%`:""}</div>
     </div>`:""}
     <div class="card">
       <div class="row" style="justify-content:space-between;margin-bottom:6px"><div><b style="font-size:17px">내 문제 · 카드 문제</b><div style="font-size:13px;color:var(--sub);margin-top:2px">출제 가능 ${pool.length}문제${tries?` · 정답률 ${Math.round(rights/tries*100)}%`:""}</div></div><button class="btn" data-act="quizStart" ${pool.length?"":"disabled"}>풀기</button></div>
-      <label class="f">범위</label>
-      <div class="chips" style="margin:0 0 4px;padding:2px 0 6px">${cats.map(c=>`<button class="chip ${quizCat===c?"on":""}" data-quizcat="${esc(c)}">${esc(c)}</button>`).join("")}</div>
-      <label class="f">문제 수</label>
-      <div class="chips" style="margin:0 0 4px;padding:2px 0 6px">${[5,10,20,0].map(n=>`<button class="chip ${quizN===n?"on":""}" data-quizn="${n}">${n?n+"문제":"전부"}</button>`).join("")}</div>
-      <label class="item dot" style="margin:10px 0 0;box-shadow:none;background:var(--tint);cursor:pointer"><span class="tx"><div class="t" style="font-size:15px">암기카드로 문제 자동 만들기</div><div class="m">카드 4장 이상이면 객관식으로 섞어서 출제</div></span><input type="checkbox" id="qUseCards" ${quizUseCards?"checked":""} style="width:22px;height:22px;accent-color:#2B2B2B"></label>
+      <div class="frow"><span class="fl">범위</span><div class="chips">${cats.map(c=>`<button class="chip ${quizCat===c?"on":""}" data-quizcat="${esc(c)}">${esc(c)}</button>`).join("")}</div></div>
+      <div class="frow"><span class="fl">문항</span><div class="chips">${[5,10,20,0].map(n=>`<button class="chip ${quizN===n?"on":""}" data-quizn="${n}">${n?n+"문제":"전부"}</button>`).join("")}</div></div>
+      <label class="item dot" style="margin:14px 0 0;box-shadow:none;background:var(--tint);cursor:pointer"><span class="tx"><div class="t" style="font-size:15px">암기카드로 문제 자동 만들기</div><div class="m">카드 4장 이상이면 객관식으로 섞어서 출제</div></span><input type="checkbox" id="qUseCards" ${quizUseCards?"checked":""} style="width:22px;height:22px;accent-color:#2B2B2B"></label>
     </div>
     <div class="sec"><h2>내 문제</h2><button class="link" data-act="newQuestion">+ 문제 만들기</button></div>
     ${mine.map(q=>`<button class="item" data-open-q="${q.id}"><div class="t">${esc(q.q)}</div><div class="m"><span class="tag">${esc(q.cat||"기타")}</span>${QTYPES[q.type]}${q.tries?` · ${q.rights||0}/${q.tries} 정답`:""}${q.inWrong?" · 오답노트":""}</div></button>`).join("") || `<div class="empty" style="padding:20px">교재·강의에서 나온 문제를 직접 만들어 보세요<br><small>객관식·O/X·주관식, 해설과 출처까지</small></div>`}`;
@@ -846,7 +854,7 @@ function renderWrong(){
       <div class="row" style="justify-content:space-between;margin:2px 0 6px"><div style="font-size:34px;font-weight:800">${all.length}문제</div><button class="btn white" data-act="wrongRetry" ${list.length?"":"disabled"}>다시 풀기</button></div>
       <div style="font-size:13px;opacity:.7">다시 풀어서 2번 연속 맞히면 자동으로 빠져요</div>
     </div>
-    ${all.length?`<div class="chips" style="margin-top:4px">${cats.map(c=>`<button class="chip ${wrongCat===c?"on":""}" data-wrongcat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`:""}
+    ${all.length?`<div class="chips">${cats.map(c=>`<button class="chip ${wrongCat===c?"on":""}" data-wrongcat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`:""}
     ${list.map(q=>`<div class="item wq">
         <div class="m" style="margin-bottom:6px"><span class="tag">${esc(q.cat||"기타")}</span><span style="color:var(--bad);font-weight:600">${q.wrongs||1}회 틀림</span>${q.lastWrongAt?` · ${new Date(q.lastWrongAt).toLocaleDateString("ko-KR")}`:""}</div>
         <div class="t" style="white-space:pre-wrap">${q.bank?`<span class="tag">${esc(q.exam)} ${q.no}번</span>`:""}${esc(q.q)}</div>
@@ -865,7 +873,7 @@ function editQuestion(q){
   const cats=[...new Set(["해부학","편자","장비·도구","질병","이론·자격",...S.questions.map(x=>x.cat||"기타"),...S.cards.map(c=>c.cat||"기타")])];
   sheetCtx={ col:"questions", obj:q };
   const body = t => `
-    <label class="f">유형</label><div class="chips" style="margin:0;padding:2px 0 6px">${Object.entries(QTYPES).map(([k,l])=>`<button class="chip ${t===k?"on":""}" data-qtype="${k}">${l}</button>`).join("")}</div>
+    <label class="f">유형</label><div class="chips">${Object.entries(QTYPES).map(([k,l])=>`<button class="chip ${t===k?"on":""}" data-qtype="${k}">${l}</button>`).join("")}</div>
     <label class="f">분류</label><input class="in-f" id="qCat" list="qcatl" value="${esc(q.cat)}"><datalist id="qcatl">${cats.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
     <label class="f">문제</label><textarea class="in-f" id="qQ" style="min-height:90px" placeholder="예: 편자못을 박는 기준이 되는 발굽 부위는?">${esc(q.q)}</textarea>
     ${t==="mc"?`<label class="f">보기 · 정답에 체크</label>${[0,1,2,3].map(i=>`<div class="row" style="margin-bottom:8px"><input type="radio" name="qAns" value="${i}" ${+q.answer===i?"checked":""} style="width:22px;height:22px;accent-color:#2B2B2B;flex:0 0 auto"><input class="in-f qc" data-i="${i}" value="${esc((q.choices||[])[i]||"")}" placeholder="보기 ${i+1}"></div>`).join("")}`:""}
@@ -1138,7 +1146,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.28-2";
+const APP_VERSION="2026.10.28-3";
 let swReg=null;
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{swReg=r;}).catch(()=>{});
 async function checkUpdate(manual){
