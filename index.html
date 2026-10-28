@@ -217,6 +217,8 @@ textarea.in-f{min-height:120px;resize:vertical}
 .wq .viewimg{max-height:220px;object-fit:contain}
 .updbar{position:fixed;left:16px;right:16px;top:calc(var(--safe-t) + 10px);z-index:70;max-width:528px;margin:0 auto;background:#fff;color:var(--ink);border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;box-shadow:0 10px 30px rgba(20,24,40,.25);text-align:left;border-left:5px solid #2E8B57}
 .updbar span{font-size:13px;opacity:.75}
+.vh{position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0}
+.addph{cursor:pointer}
 .hidden{display:none!important}
 </style>
 </head>
@@ -232,8 +234,8 @@ textarea.in-f{min-height:120px;resize:vertical}
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
 <div class="toast" id="toast"></div>
-<input type="file" id="fileIn" accept="image/*,video/*" multiple class="hidden">
-<input type="file" id="restoreIn" accept="application/json,.json" class="hidden">
+<input type="file" id="fileIn" accept="image/*,video/*" multiple class="vh">
+<input type="file" id="restoreIn" accept="application/json,.json" class="vh">
 
 <script>
 /* ---------- utils ---------- */
@@ -311,7 +313,7 @@ async function init(){
     const used = new Set(COLS.flatMap(c=>S[c].flatMap(mediaIds)));
     for(const m of media){
       if(!used.has(m.id)){ await idbDel("media",m.id); continue; }   // clean up unsaved uploads
-      URLS[m.id] = URL.createObjectURL(m.blob);
+      URLS[m.id] = URL.createObjectURL(mediaBlob(m));
     }
     sortAll();
     let persisted=false;
@@ -345,12 +347,22 @@ const MAX_VIDEO = 300*1024*1024;
 async function photoFromFile(file){
   const isV = file.type.startsWith("video/");
   if(isV && file.size>MAX_VIDEO) throw new Error(`영상이 너무 커요 (${(file.size/1048576).toFixed(0)}MB). 300MB 이하로 잘라 주세요`);
-  const blob = isV ? file : await compress(file,1600,.82);
+  let blob = file;
+  if(!isV){
+    try{ blob = await compress(file,1600,.82); }
+    catch(e){ if(file.size>20*1024*1024) throw new Error("사진을 읽지 못했어요. 다른 사진으로 해 주세요"); blob=file; }   // e.g. HEIC that can't be drawn: keep original
+  }
   const id = uid();
-  await idbPut("media",{ id, blob, type: isV?"video":"image", mime: blob.type, createdAt:Date.now() });
-  URLS[id] = URL.createObjectURL(blob);
+  const mime = blob.type || (isV ? "video/mp4" : "image/jpeg");
+  let data;
+  try{ data = await blob.arrayBuffer(); }catch(e){ throw new Error("파일을 읽지 못했어요"); }
+  // store raw bytes (iOS Safari can fail to keep File/Blob objects in IndexedDB)
+  try{ await idbPut("media",{ id, data, type: isV?"video":"image", mime, createdAt:Date.now() }); }
+  catch(e){ throw new Error(e?.name==="QuotaExceededError" ? "폰 저장 공간이 부족해요" : "저장하지 못했어요 ("+(e?.name||"오류")+")"); }
+  URLS[id] = URL.createObjectURL(new Blob([data],{type:mime}));
   return { mediaId:id, type: isV?"video":"image" };
 }
+const mediaBlob = m => m.blob || new Blob([m.data],{type:m.mime||"application/octet-stream"});
 const isVid = p => p.type==="video";
 const photoSrc = p => URLS[p.mediaId] || "";
 const media = p => isVid(p) ? `<video class="viewimg" src="${esc(photoSrc(p))}#t=0.1" controls playsinline preload="metadata"></video>` : `<img class="viewimg" src="${esc(photoSrc(p))}" alt="">`;
@@ -364,7 +376,7 @@ async function exportBackup(withVideo){
   const all = await idbAll("media");
   const out = { app:"farrier-notes", version:1, exportedAt:new Date().toISOString(), data:{}, media:[] };
   for(const c of COLS) out.data[c]=S[c];
-  for(const m of all){ if(m.type==="video" && !withVideo) continue; out.media.push({ id:m.id, type:m.type, mime:m.mime, b64: await blobToB64(m.blob) }); }
+  for(const m of all){ if(m.type==="video" && !withVideo) continue; out.media.push({ id:m.id, type:m.type, mime:m.mime, b64: await blobToB64(mediaBlob(m)) }); }
   const file = new File([JSON.stringify(out)], `장제노트-백업-${ymd()}.json`, { type:"application/json" });
   ls.set("fn_lastBackup", ymd());
   if(navigator.canShare?.({ files:[file] })){
@@ -378,7 +390,7 @@ async function importBackup(file){
   try{
     const j = JSON.parse(await file.text());
     if(j.app!=="farrier-notes") throw new Error("장제노트 백업 파일이 아니에요");
-    for(const m of j.media||[]){ const blob=b64ToBlob(m.b64,m.mime); await idbPut("media",{ id:m.id, blob, type:m.type, mime:m.mime, createdAt:Date.now() }); if(URLS[m.id]) URL.revokeObjectURL(URLS[m.id]); URLS[m.id]=URL.createObjectURL(blob); }
+    for(const m of j.media||[]){ const blob=b64ToBlob(m.b64,m.mime); await idbPut("media",{ id:m.id, data: await blob.arrayBuffer(), type:m.type, mime:m.mime, createdAt:Date.now() }); if(URLS[m.id]) URL.revokeObjectURL(URLS[m.id]); URLS[m.id]=URL.createObjectURL(blob); }
     let n=0;
     for(const c of COLS) for(const o of j.data?.[c]||[]){ await idbPut(c,o); const i=S[c].findIndex(x=>x.id===o.id); if(i>=0) S[c][i]=o; else S[c].push(o); n++; }
     sortAll(); closeSheet(); toast(`${n}개 기록을 불러왔어요`);
@@ -973,17 +985,18 @@ function editSession(s){
 let sheetCtx=null;
 function drawPh(){
   const el=$("#ph"); if(!el) return;
-  el.innerHTML = draftPhotos.map((p,i)=>`<div class="p ${isVid(p)?"pv":""}">${isVid(p)?`<video src="${esc(photoSrc(p))}#t=0.1" muted playsinline preload="metadata"></video>`:`<img src="${esc(photoSrc(p))}" alt="">`}<button class="x" data-rmph="${i}">✕</button></div>`).join("") + (draftPhotos.length<8?`<button class="addph" data-act="addPhoto">＋</button>`:"");
+  el.innerHTML = draftPhotos.map((p,i)=>`<div class="p ${isVid(p)?"pv":""}">${isVid(p)?`<video src="${esc(photoSrc(p))}#t=0.1" muted playsinline preload="metadata"></video>`:`<img src="${esc(photoSrc(p))}" alt="">`}<button class="x" data-rmph="${i}">✕</button></div>`).join("") + (draftPhotos.length<8?`<label class="addph" for="fileIn">＋</label>`:"");
 }
 $("#fileIn").onchange = async e=>{
   const files=[...e.target.files].slice(0,8-draftPhotos.length); e.target.value="";
   if(!files.length) return;
   toast(files.some(f=>f.type.startsWith("video/"))?"영상 올리는 중… 잠시만요":"사진 올리는 중…");
+  let ok=0, lastErr="";
   for(const f of files){
-    try{ draftPhotos.push(await photoFromFile(f)); drawPh(); }
-    catch(err){ console.error(err); toast(err?.message && /[가-힣]/.test(err.message) ? err.message : "파일을 올리지 못했어요"); await new Promise(r=>setTimeout(r,1800)); }
+    try{ draftPhotos.push(await photoFromFile(f)); ok++; drawPh(); }
+    catch(err){ console.error(err); lastErr = err?.message && /[가-힣]/.test(err.message) ? err.message : "파일을 올리지 못했어요 ("+(err?.name||err?.message||"오류")+")"; }
   }
-  toast("첨부 완료");
+  toast(ok===files.length ? `${ok}개 첨부했어요` : ok ? `${ok}개만 첨부됐어요 · ${lastErr}` : lastErr);
 };
 
 /* ---------- starter cards ---------- */
@@ -1146,7 +1159,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.28-3";
+const APP_VERSION="2026.10.28-4";
 let swReg=null;
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{swReg=r;}).catch(()=>{});
 async function checkUpdate(manual){
