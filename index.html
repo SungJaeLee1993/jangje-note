@@ -115,7 +115,7 @@ h1{font-size:32px;letter-spacing:-.03em;margin:0;font-weight:800;line-height:1.1
 .strip button b{font-size:15px;font-weight:600}
 .strip button i{width:5px;height:5px;border-radius:50%;background:transparent;margin-top:4px}
 .strip button.has i{background:var(--sub)}
-.strip button.on{background:var(--primary);color:#fff;box-shadow:0 10px 20px rgba(30,34,50,.25)}
+.strip button.on{background:var(--primary);color:#fff;box-shadow:0 6px 12px rgba(30,34,50,.18)}
 .strip button.on i{background:#fff}
 .tl{position:relative;padding-left:34px}
 .tl:before{content:"";position:absolute;left:9px;top:14px;bottom:20px;width:2.5px;background:var(--ink);border-radius:2px}
@@ -270,7 +270,8 @@ nav{background:rgba(255,255,255,.62)!important;backdrop-filter:blur(24px) satura
 .stick + *{margin-top:16px}
 .stick .search{margin-top:4px}
 .stick .chips{margin-bottom:0;padding-bottom:10px}
-.stick .strip{margin-bottom:0;padding-bottom:16px}
+.stick .strip{margin:0 -20px;padding:8px 20px 22px}
+.stick:has(.strip){padding-top:0}
 .dayrow{display:flex;justify-content:space-between;align-items:center;padding:2px 2px 12px;font-size:14px;color:var(--sub2)}
 .scrim{cursor:pointer;touch-action:none}
 .sheet{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
@@ -1061,7 +1062,6 @@ function renderWrong(){
     <div class="card dark" style="padding:22px;border-radius:var(--r-xl)">${waves(.12)}
       <div style="font-size:14px;opacity:.7">오답노트</div>
       <div class="row" style="justify-content:space-between;margin:2px 0 6px"><div style="font-size:34px;font-weight:800">${all.length}문제</div><button class="btn white" data-act="wrongRetry" ${list.length?"":"disabled"}>다시 풀기</button></div>
-      <div style="font-size:13px;opacity:.7">다시 풀어서 2번 연속 맞히면 자동으로 빠져요</div>
     </div>
     ${all.length?`<div class="chips">${cats.map(c=>`<button class="chip ${wrongCat===c?"on":""}" data-wrongcat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`:""}
     ${list.map(q=>`<div class="item wq">
