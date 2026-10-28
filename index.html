@@ -51,7 +51,8 @@ h1{font-size:32px;letter-spacing:-.03em;margin:0;font-weight:800;line-height:1.1
 .card{background:var(--card);border-radius:var(--r-lg);padding:20px;margin-bottom:14px;box-shadow:var(--shadow-s)}
 .dark{position:relative;overflow:hidden;background:var(--primary);color:#fff;border-radius:var(--r-lg)}
 .dark>*{position:relative}
-.hscroll{display:flex;gap:14px;overflow-x:auto;margin:0 -20px;padding:4px 20px 18px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.hscroll{display:flex;gap:14px;overflow-x:auto;margin:0 -20px;padding:4px 20px 18px;scroll-snap-type:x mandatory;scroll-padding:0 20px;scrollbar-width:none}
+.hscroll:after{content:"";flex:0 0 6px}
 .hscroll::-webkit-scrollbar{display:none}
 .tile{flex:0 0 62%;scroll-snap-align:start;border-radius:var(--r-xl);padding:22px;min-height:220px;display:flex;flex-direction:column;text-align:left;position:relative;overflow:hidden}
 .tile.dark{color:#fff}
@@ -285,7 +286,7 @@ async function init(){
 let storageOK=false;
 function setMode(persisted){
   const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-  modeInfo = standalone || persisted ? {text:"📱 폰에 저장",warn:false} : {text:"⚠︎ 홈 화면에 추가",warn:true};
+  modeInfo = standalone ? {hide:true} : {text:"⚠︎ 홈 화면에 추가",warn:true};
 }
 
 /* ---------- photos & videos ---------- */
@@ -413,7 +414,7 @@ function drawNav(){
 $("#nav").addEventListener("click",e=>{ const b=e.target.closest("[data-tab]"); if(!b) return; tab=b.dataset.tab; ls.set("fn_tab",tab); review=null; render(); window.scrollTo(0,0); });
 
 let modeInfo={ text:"불러오는 중…", warn:false };
-const modeBadge = () => `<button class="mode ${modeInfo.warn?"warn":""}" data-act="settings">${esc(modeInfo.text)}</button>`;
+const modeBadge = () => modeInfo.hide ? "" : `<button class="mode ${modeInfo.warn?"warn":""}" data-act="settings">${esc(modeInfo.text)}</button>`;
 
 /* ---------- render ---------- */
 let noteCat="전체", noteQ="", cardCat="전체", review=null, sheetOpen=false, pendingRender=false, logDay=null;
