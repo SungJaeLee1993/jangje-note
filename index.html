@@ -311,6 +311,11 @@ input.in-f::-webkit-calendar-picker-indicator{opacity:.5}
 .tlist{display:flex;flex-direction:column;gap:8px;padding-bottom:16px}
 .tlist button{display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:16px;padding:16px 18px;font-size:16px;font-weight:600;box-shadow:inset 0 0 0 1.5px var(--line)}
 .tlist button.on{box-shadow:inset 0 0 0 2px var(--ink)}
+/* 하단 메뉴: 홈 인디케이터 여백 축소 */
+nav{padding-bottom:max(calc(env(safe-area-inset-bottom,0px) - 18px),6px)!important}
+nav .in{height:60px}
+nav .tb{gap:3px}
+nav .plus{margin-top:-30px}
 .hidden{display:none!important}
 </style>
 </head>
@@ -1393,7 +1398,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.29-1";
+const APP_VERSION="2026.10.29-2";
 let swReg=null;
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{swReg=r;}).catch(()=>{});
 async function checkUpdate(manual){
