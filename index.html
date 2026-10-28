@@ -202,6 +202,9 @@ textarea.in-f{min-height:120px;resize:vertical}
 .wq .ans{font-size:14px;margin-top:8px;color:var(--sub2)}.wq .ans b{color:var(--ink)}
 .wq .ex{margin-top:8px;padding:12px 14px;background:var(--tint);border-radius:12px;font-size:14px}
 .wq .memo{margin-top:8px;font-size:14px;color:var(--ink);padding:10px 14px;border-left:3px solid var(--ink);background:#FAFAFB;border-radius:4px 12px 12px 4px}
+.qbox{margin-top:14px;padding:14px 16px;border-radius:14px;background:var(--tint);font-size:15px;line-height:1.65;color:var(--ink)}
+.wq .qbox{font-size:14px}
+.wq .viewimg{max-height:220px;object-fit:contain}
 .hidden{display:none!important}
 </style>
 </head>
@@ -302,6 +305,7 @@ async function init(){
     let persisted=false;
     try{ persisted = await navigator.storage?.persisted?.() || await navigator.storage?.persist?.() || false; }catch(e){}
     storageOK = true; setMode(persisted); updateBadge();
+    loadBank();
   }catch(e){
     console.error(e); modeInfo={text:"⚠︎ 저장 불가",warn:true};
     toast("이 브라우저에서는 저장할 수 없어요");
@@ -696,6 +700,12 @@ function updateBadge(){
 }
 
 /* ---------- 문제풀이 · 오답노트 ---------- */
+let BANK=[];
+async function loadBank(){
+  try{ const r=await fetch("exam/bank.json"); BANK=(await r.json()).map(q=>({...q, bank:true, type:"mc", cat:q.subj, source:`제${q.exam.replace("회"," 회").split(" ")[0]}회 장제사 필기 기출 ${q.no}번 · 공식 정답`})); if(tab==="cards" && !sheetOpen) render(); }catch(e){ console.warn("bank",e); }
+}
+let bankExam="전체", bankSubj="전체";
+function bankList(){ return BANK.filter(q=>(bankExam==="전체"||q.exam===bankExam)&&(bankSubj==="전체"||q.subj===bankSubj)); }
 let studyMode = ls.get("fn_study","cards");   // cards | quiz | wrong
 let quiz = null;                               // active session
 let quizCat="전체", quizN=10, quizUseCards=true, wrongCat="전체";
@@ -734,14 +744,18 @@ function renderQuizHome(){
   const tries=S.questions.reduce((a,q)=>a+(q.tries||0),0), rights=S.questions.reduce((a,q)=>a+(q.rights||0),0);
   const cats=["전체",...new Set([...mine.map(q=>q.cat||"기타"), ...(quizUseCards?S.cards.map(c=>c.cat||"기타"):[])])];
   const pool=quizPool();
+  const st=S.questions.filter(x=>x.bank), bt=st.reduce((a,x)=>a+(x.tries||0),0), br=st.reduce((a,x)=>a+(x.rights||0),0);
   $("#view").innerHTML = studySeg()+`
-    <div class="card dark" style="padding:22px;border-radius:var(--r-xl)">${waves(.12)}
-      <div style="font-size:14px;opacity:.7">출제 가능한 문제</div>
-      <div class="row" style="justify-content:space-between;margin:2px 0 6px"><div style="font-size:34px;font-weight:800">${pool.length}문제</div><button class="btn white" data-act="quizStart" ${pool.length?"":"disabled"}>풀기 시작</button></div>
-      <div style="font-size:13px;opacity:.7">내 문제 ${mine.length} · 카드 문제 ${quizUseCards?S.cards.length:0}${tries?` · 누적 정답률 ${Math.round(rights/tries*100)}%`:""}</div>
-    </div>
+    ${BANK.length?`<div class="card dark" style="padding:22px;border-radius:var(--r-xl)">${waves(.12)}
+      <div style="font-size:14px;opacity:.7">장제사 필기 기출 · 공식 정답 + 해설</div>
+      <div class="row" style="justify-content:space-between;margin:2px 0 6px"><div style="font-size:34px;font-weight:800">${bankList().length}문제</div><button class="btn white" data-act="bankStart" ${bankList().length?"":"disabled"}>풀기 시작</button></div>
+      <div class="chips" style="margin:8px 0 0">${["전체",...new Set(BANK.map(q=>q.exam))].map(c=>`<button class="chip ${bankExam===c?"on":""}" data-bankexam="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+      <div class="chips" style="margin:0">${["전체","장제학","해부·생리","상식"].map(c=>`<button class="chip ${bankSubj===c?"on":""}" data-banksubj="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+      <div style="font-size:12.5px;opacity:.6;margin-top:4px">9·10회 · 개정 가능성 있는 법규 문제 제외${bt?` · 누적 정답률 ${Math.round(br/bt*100)}%`:""}</div>
+    </div>`:""}
     <div class="card">
-      <label class="f" style="margin-top:0">범위</label>
+      <div class="row" style="justify-content:space-between;margin-bottom:6px"><div><b style="font-size:17px">내 문제 · 카드 문제</b><div style="font-size:13px;color:var(--sub);margin-top:2px">출제 가능 ${pool.length}문제${tries?` · 정답률 ${Math.round(rights/tries*100)}%`:""}</div></div><button class="btn" data-act="quizStart" ${pool.length?"":"disabled"}>풀기</button></div>
+      <label class="f">범위</label>
       <div class="chips" style="margin:0 0 4px;padding:2px 0 6px">${cats.map(c=>`<button class="chip ${quizCat===c?"on":""}" data-quizcat="${esc(c)}">${esc(c)}</button>`).join("")}</div>
       <label class="f">문제 수</label>
       <div class="chips" style="margin:0 0 4px;padding:2px 0 6px">${[5,10,20,0].map(n=>`<button class="chip ${quizN===n?"on":""}" data-quizn="${n}">${n?n+"문제":"전부"}</button>`).join("")}</div>
@@ -773,8 +787,9 @@ function renderQuiz(){
     <div class="row" style="justify-content:space-between;margin-bottom:10px"><span style="color:var(--sub2);font-size:14px;font-weight:600">${z.i+1} / ${z.list.length} · ${esc(z.label)}</span><button class="link" data-act="quizEnd">그만하기</button></div>
     <div class="qbar"><i style="width:${z.i/z.list.length*100}%"></i></div>
     <div class="card" style="padding:22px">
-      <div style="margin-bottom:10px"><span class="tag">${esc(q.cat||"기타")}</span><span class="tag">${QTYPES[q.type]}</span>${q.inWrong?`<span class="tag" style="color:var(--bad)">오답 ${q.wrongs||1}회</span>`:""}</div>
+      <div style="margin-bottom:10px">${q.bank?`<span class="tag">${esc(q.exam)} ${q.no}번</span>`:""}<span class="tag">${esc(q.cat||"기타")}</span>${q.bank?"":`<span class="tag">${QTYPES[q.type]}</span>`}${q.inWrong?`<span class="tag" style="color:var(--bad)">오답 ${q.wrongs||1}회</span>`:""}</div>
       <div style="font-size:19px;font-weight:700;line-height:1.45;white-space:pre-wrap">${esc(q.q)}</div>
+      ${qExtra(q)}
       ${(q.photos||[]).map(media).join("")}
     </div>
     ${q.type==="mc"?`<div class="choices">${q.choices.map((c,i)=>choiceBtn(c,i,i)).join("")}</div>`:""}
@@ -790,6 +805,7 @@ function renderQuiz(){
       </div>
       <button class="btn block" data-act="quizNext">${z.i+1<z.list.length?"다음 문제":"결과 보기"}</button>`:""}`;
 }
+const qExtra = q => `${(q.box||[]).length?`<div class="qbox">${q.box.map(esc).join("<br>")}</div>`:""}${q.img?`<img class="viewimg" style="background:#fff" src="exam/${esc(q.img)}" alt="문제 그림">`:""}`;
 const ansText = q => q.type==="mc" ? `${(+q.answer)+1}. ${q.choices[q.answer]}` : String(q.answer);
 const isAnswer = (q,val) => q.type==="mc" ? +val===+q.answer : q.type==="ox" ? val===q.answer : normAns(val)===normAns(q.answer);
 const storedQ = q => S.questions.find(x=>x.id===q.id);
@@ -801,7 +817,7 @@ async function gradeQuiz(val){
   renderQuiz();
 }
 async function recordResult(q, correct){
-  const base = storedQ(q) || (q.fromCard ? {...q, createdAt:Date.now()} : null);
+  const base = storedQ(q) || ((q.fromCard||q.bank) ? {...q, createdAt:Date.now()} : null);
   if(!base) return;
   if(q.fromCard && correct && !storedQ(q)) return;          // card question answered right: nothing to keep
   const o={...base, tries:(base.tries||0)+1, rights:(base.rights||0)+(correct?1:0)};
@@ -830,11 +846,12 @@ function renderWrong(){
     ${all.length?`<div class="chips" style="margin-top:4px">${cats.map(c=>`<button class="chip ${wrongCat===c?"on":""}" data-wrongcat="${esc(c)}">${esc(c)}</button>`).join("")}</div>`:""}
     ${list.map(q=>`<div class="item wq">
         <div class="m" style="margin-bottom:6px"><span class="tag">${esc(q.cat||"기타")}</span><span style="color:var(--bad);font-weight:600">${q.wrongs||1}회 틀림</span>${q.lastWrongAt?` · ${new Date(q.lastWrongAt).toLocaleDateString("ko-KR")}`:""}</div>
-        <div class="t" style="white-space:pre-wrap">${esc(q.q)}</div>
+        <div class="t" style="white-space:pre-wrap">${q.bank?`<span class="tag">${esc(q.exam)} ${q.no}번</span>`:""}${esc(q.q)}</div>
+        ${qExtra(q)}
         <div class="ans">정답 · <b>${esc(ansText(q))}</b></div>
         ${q.explain?`<div class="ex">${esc(q.explain)}</div>`:""}
         ${q.memo?`<div class="memo">✎ ${esc(q.memo)}</div>`:""}
-        <div class="row" style="margin-top:12px;gap:8px">${q.fromCard?"":`<button class="btn line" style="padding:9px 14px;font-size:14px" data-open-q="${q.id}">편집·해설</button>`}<button class="btn line" style="padding:9px 14px;font-size:14px" data-act="wrongMemo" data-id="${q.id}">메모</button><button class="btn ghost" style="padding:9px 14px;font-size:14px;margin-left:auto" data-act="wrongClear" data-id="${q.id}">이제 알아요</button></div>
+        <div class="row" style="margin-top:12px;gap:8px">${(q.fromCard||q.bank)?"":`<button class="btn line" style="padding:9px 14px;font-size:14px" data-open-q="${q.id}">편집·해설</button>`}<button class="btn line" style="padding:9px 14px;font-size:14px" data-act="wrongMemo" data-id="${q.id}">메모</button><button class="btn ghost" style="padding:9px 14px;font-size:14px;margin-left:auto" data-act="wrongClear" data-id="${q.id}">이제 알아요</button></div>
       </div>`).join("") || `<div class="empty">${all.length?"이 분류엔 오답이 없어요":"틀린 문제가 여기 모여요<br><small>문제풀이에서 틀리면 해설과 함께 자동 저장</small>"}</div>`}`;
 }
 
@@ -995,7 +1012,7 @@ async function addStarter(){
 
 /* ---------- events ---------- */
 document.addEventListener("click", async e=>{
-  const el=e.target.closest("[data-act],[data-go],[data-open-note],[data-open-log],[data-open-card],[data-open-session],[data-open-todo],[data-toggle-todo],[data-todofilter],[data-study],[data-quizcat],[data-quizn],[data-wrongcat],[data-open-q],[data-pick],[data-qtype],[data-notecat],[data-logday],[data-cardcat],[data-topic],[data-rmph]");
+  const el=e.target.closest("[data-act],[data-go],[data-open-note],[data-open-log],[data-open-card],[data-open-session],[data-open-todo],[data-toggle-todo],[data-todofilter],[data-study],[data-quizcat],[data-quizn],[data-wrongcat],[data-bankexam],[data-banksubj],[data-open-q],[data-pick],[data-qtype],[data-notecat],[data-logday],[data-cardcat],[data-topic],[data-rmph]");
   if(!el) return;
   const d=el.dataset;
   if(d.go){ tab=d.go; ls.set("fn_tab",tab); render(); window.scrollTo(0,0); return; }
@@ -1010,6 +1027,8 @@ document.addEventListener("click", async e=>{
   if(d.quizcat){ quizCat=d.quizcat; return render(); }
   if(d.quizn!=null){ quizN=+d.quizn; return render(); }
   if(d.wrongcat){ wrongCat=d.wrongcat; return render(); }
+  if(d.bankexam){ bankExam=d.bankexam; return render(); }
+  if(d.banksubj){ bankSubj=d.banksubj; return render(); }
   if(d.openQ) return editQuestion(S.questions.find(x=>x.id===d.openQ));
   if(d.pick!=null){ if(quiz && !quiz.graded){ const q=quiz.list[quiz.i]; return gradeQuiz(q.type==="mc"?+d.pick:d.pick); } return; }
   if(d.qtype){ return sheetCtx?.rerender?.(d.qtype); }
@@ -1074,6 +1093,7 @@ document.addEventListener("click", async e=>{
       if(q.type==="mc"){ const keep=q.choices.map((c,i)=>[c,i]).filter(([c])=>c); q.answer=keep.findIndex(([,i])=>i===q.answer); q.choices=keep.map(([c])=>c); }
       delete q.rerender; closeSheet(); await put("questions",q); return toast("저장했어요");
     }
+    case "bankStart": { const l=bankList(); const ordered=bankExam!=="전체"&&bankSubj==="전체"; return startQuiz(ordered?l:shuffle(l), `${bankExam==='전체'?'기출':bankExam}${bankSubj!=='전체'?' '+bankSubj:''}`); }
     case "quizStart": { let list=shuffle(quizPool()); if(quizN) list=list.slice(0,quizN); return startQuiz(list, quizCat==="전체"?"전체 범위":quizCat); }
     case "quizSubmitShort": { const v=$("#qShort").value.trim(); if(!v) return toast("답을 입력해 주세요"); return gradeQuiz(v); }
     case "quizOverride": { const z=quiz, q=z.list[z.i]; const o=storedQ(q); z.correct=true; z.ok++; z.wrong=z.wrong.filter(w=>w.q.id!==q.id); if(o){ const n={...o, rights:(o.rights||0)+1, wrongs:Math.max(0,(o.wrongs||1)-1)}; n.inWrong=n.wrongs>0; await put("questions",n); } return renderQuiz(); }
