@@ -983,7 +983,7 @@ const ddayOf = d => { const n=Math.round((new Date(d+"T00:00:00")-new Date(ymd()
 const nextEvent = () => allEvents().find(e=>(e.sort||"")>=ymd());
 function eventItem(e){
   const past=(e.sort||"")<ymd(); const d=new Date((e.sort||ymd())+"T00:00:00");
-  const day = e.preset ? (e.when.match(/(\d+)월/)?.[1]||"")+"월" : String(d.getDate());
+  const day = e.preset ? String(d.getMonth()+1)+"월" : String(d.getDate());
   const wk = e.preset ? "" : "일월화수목금토"[d.getDay()];
   return `<button class="sitem ${past?"past":""}" ${e.preset?`data-open-preset="${e.id}"`:`data-open-event="${e.id}" data-swipe="events:${e.id}"`}>
     <span class="dd"><b>${esc(day)}</b><span>${wk}</span></span>
