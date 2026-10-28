@@ -205,6 +205,8 @@ textarea.in-f{min-height:120px;resize:vertical}
 .qbox{margin-top:14px;padding:14px 16px;border-radius:14px;background:var(--tint);font-size:15px;line-height:1.65;color:var(--ink)}
 .wq .qbox{font-size:14px}
 .wq .viewimg{max-height:220px;object-fit:contain}
+.updbar{position:fixed;left:16px;right:16px;top:calc(var(--safe-t) + 10px);z-index:70;max-width:528px;margin:0 auto;background:#fff;color:var(--ink);border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;box-shadow:0 10px 30px rgba(20,24,40,.25);text-align:left;border-left:5px solid #2E8B57}
+.updbar span{font-size:13px;opacity:.75}
 .hidden{display:none!important}
 </style>
 </head>
@@ -401,6 +403,7 @@ async function openSettings(){
       <div style="font-size:14px;color:var(--sub);margin:6px 0 12px">체크리스트에서 '아이폰 알림 받기'를 켜면 캘린더 일정으로 추가돼서 그 시간에 알림이 와요. 아래를 허용하면 오늘·지난 할 일 개수가 앱 아이콘 배지로 표시돼요.</div>
       <button class="btn line block" data-act="askNotif">${(window.Notification&&Notification.permission==="granted")?"✓ 배지 알림 허용됨":"앱 아이콘 배지 허용"}</button>
     </div>
+    <div class="card"><div class="row" style="justify-content:space-between"><div><b>앱 버전</b><div style="font-size:13px;color:var(--sub)">${APP_VERSION} · 업데이트해도 기록은 유지돼요</div></div><button class="btn line" style="padding:10px 14px" data-act="checkUpdate">업데이트 확인</button></div><div style="font-size:13px;color:var(--bad);margin-top:10px">⚠︎ 앱을 홈 화면에서 삭제하면 기록이 모두 지워져요.</div></div>
     ${standalone?"":`<div class="card"><b>홈 화면에 추가하는 법</b><div style="font-size:14px;color:var(--sub);margin-top:6px;line-height:1.7">1. 사파리 아래쪽 <b>공유 버튼</b>(□↑) 누르기<br>2. <b>홈 화면에 추가</b> 선택<br>3. 홈 화면의 <b>장제노트</b> 아이콘으로 열기</div></div>`}`);
 }
 
@@ -1119,6 +1122,8 @@ document.addEventListener("click", async e=>{
     case "todoTpl": { const now=Date.now(); for(let i=0;i<TPL_PREP.length;i++) await put("todos",{ id:uid(), text:TPL_PREP[i], due:"", time:"", notify:false, done:false, createdAt:now+i }); todoFilter="open"; return toast("준비물 6개를 추가했어요"); }
     case "clearDone": { for(const t of S.todos.filter(x=>x.done)) await del("todos",t.id); return toast("완료 항목을 지웠어요"); }
     case "settings": return openSettings();
+    case "doUpdate": { toast("업데이트 중…"); try{ await swReg?.update?.(); const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }catch(e){} location.reload(); return; }
+    case "checkUpdate": return checkUpdate(true);
     case "quickAdd": return quickAdd();
     case "newLog": return editLog();
     case "newNote": return editNote();
@@ -1133,7 +1138,26 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(()=>{});
+const APP_VERSION="2026.10.28-2";
+let swReg=null;
+if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{swReg=r;}).catch(()=>{});
+async function checkUpdate(manual){
+  try{
+    const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"}); const {version}=await r.json();
+    swReg?.update?.();
+    if(version && version!==APP_VERSION){ showUpdateBar(version); return true; }
+    if(manual) toast("최신 버전이에요 ("+APP_VERSION+")");
+  }catch(e){ if(manual) toast("인터넷 연결을 확인해 주세요"); }
+  return false;
+}
+function showUpdateBar(){
+  if($("#updBar")) return;
+  const d=document.createElement("button"); d.id="updBar"; d.className="updbar"; d.dataset.act="doUpdate";
+  d.innerHTML="<b>새 버전이 있어요</b><span>눌러서 업데이트 · 기록은 그대로예요</span>";
+  document.body.appendChild(d);
+}
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) checkUpdate(false); });
+setTimeout(()=>checkUpdate(false),1500);
 init();
 </script>
 </body>
