@@ -177,6 +177,11 @@ textarea.in-f{min-height:120px;resize:vertical}
 .toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + var(--safe-b) + 28px);transform:translateX(-50%);background:var(--primary);color:#fff;padding:11px 18px;border-radius:14px;font-size:14px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;box-shadow:var(--shadow)}
 .toast.on{opacity:1}
 .confirm{display:flex;gap:8px;margin-top:10px}
+.todo{padding:12px 14px}
+.todo .bx{border:0;cursor:pointer}
+.todo .tx{background:none;border:0;padding:4px 0;cursor:pointer}
+.todo.is-done .t{text-decoration:line-through;color:var(--sub)}
+.item .m.over{color:var(--bad)}
 .hidden{display:none!important}
 </style>
 </head>
@@ -213,14 +218,14 @@ const STUDY_TOPICS = ["해부학","편자 제작","장제 실기","이론·자�
 const INTERVALS = [0,1,3,7,14,30]; // box 0..5
 
 /* ---------- store: IndexedDB on this device ---------- */
-const COLS = ["notes","logs","cards","sessions"];
-const S = { notes:[], logs:[], cards:[], sessions:[] };
+const COLS = ["notes","logs","cards","sessions","todos"];
+const S = { notes:[], logs:[], cards:[], sessions:[], todos:[] };
 const URLS = {};               // mediaId -> object URL
 let idb = null;
 
 function openIDB(){
   return new Promise((res,rej)=>{
-    const r = indexedDB.open("farrier-notes", 1);
+    const r = indexedDB.open("farrier-notes", 2);
     r.onupgradeneeded = () => { const d=r.result; [...COLS,"media"].forEach(c=>{ if(!d.objectStoreNames.contains(c)) d.createObjectStore(c,{keyPath:"id"}); }); };
     r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
   });
@@ -276,7 +281,7 @@ async function init(){
     sortAll();
     let persisted=false;
     try{ persisted = await navigator.storage?.persisted?.() || await navigator.storage?.persist?.() || false; }catch(e){}
-    storageOK = true; setMode(persisted);
+    storageOK = true; setMode(persisted); updateBadge();
   }catch(e){
     console.error(e); modeInfo={text:"⚠︎ 저장 불가",warn:true};
     toast("이 브라우저에서는 저장할 수 없어요");
@@ -367,6 +372,11 @@ async function openSettings(){
       <button class="btn line block" style="margin-top:8px" data-act="backupV">영상까지 포함해서 백업</button>
       <button class="btn ghost block" style="margin-top:8px" data-act="restore">백업 불러오기</button>
     </div>
+    <div class="card">
+      <b>알림</b>
+      <div style="font-size:14px;color:var(--sub);margin:6px 0 12px">체크리스트에서 '아이폰 알림 받기'를 켜면 캘린더 일정으로 추가돼서 그 시간에 알림이 와요. 아래를 허용하면 오늘·지난 할 일 개수가 앱 아이콘 배지로 표시돼요.</div>
+      <button class="btn line block" data-act="askNotif">${(window.Notification&&Notification.permission==="granted")?"✓ 배지 알림 허용됨":"앱 아이콘 배지 허용"}</button>
+    </div>
     ${standalone?"":`<div class="card"><b>홈 화면에 추가하는 법</b><div style="font-size:14px;color:var(--sub);margin-top:6px;line-height:1.7">1. 사파리 아래쪽 <b>공유 버튼</b>(□↑) 누르기<br>2. <b>홈 화면에 추가</b> 선택<br>3. 홈 화면의 <b>장제노트</b> 아이콘으로 열기</div></div>`}`);
 }
 
@@ -421,12 +431,13 @@ let noteCat="전체", noteQ="", cardCat="전체", review=null, sheetOpen=false, 
 function render(){
   drawNav();
   const titles={home:"장제노트",notes:"Notes",logs:"Today",cards:"Cards",timer:"Timer"};
-  const subs={notes:"공부 노트",logs:"실습·견학 일지",cards:"암기 카드",timer:"공부 타이머"};
+  const subs={notes:"공부 노트",logs:"실습·견학 일지",cards:"암기 카드",timer:"공부 타이머",todos:"체크리스트"};
   $(".app").classList.toggle("home", tab==="home");
   $("#title").textContent = tab==="logs" ? "실습 일지" : (subs[tab]||"");
   $("#hsub").textContent = fmtLong(ymd());
   $("#modeSlot").innerHTML = modeBadge();
-  ({home:renderHome,notes:renderNotes,logs:renderLogs,cards:renderCards,timer:renderTimer})[tab]();
+  ({home:renderHome,notes:renderNotes,logs:renderLogs,cards:renderCards,timer:renderTimer,todos:renderTodos})[tab]();
+  updateBadge();
 }
 const fmtLong = s => { const d=new Date(s+"T00:00:00"); return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`; };
 
@@ -448,7 +459,9 @@ function renderHome(){
       <button class="tile soft" data-go="timer"><span class="ic">${svg("timer",22)}</span><span class="tt">공부 타이머</span><span class="dd">오늘 공부한 시간</span><span class="big">${fmtMin(today)}</span></button>
       <button class="tile white" data-go="logs"><span class="ic">${svg("logs",22)}</span><span class="tt">연속 기록</span><span class="dd">실습 ${S.logs.length}회 · 노트 ${S.notes.length}개</span><span class="big">${streak()}일</span></button>
     </div>
-    <div class="sec" style="margin-top:12px"><h2>최근 일지</h2><button class="link" data-go="logs">전체 보기</button></div>
+    <div class="sec" style="margin-top:12px"><h2>체크리스트</h2><button class="link" data-go="todos">전체 보기${S.todos.filter(t=>!t.done).length?` (${S.todos.filter(t=>!t.done).length})`:""}</button></div>
+    ${openTodos().slice(0,4).map(todoItem).join("") || `<button class="item dot" data-act="newTodo"><span class="bx o"></span><span class="tx"><div class="t">할 일 추가하기</div><div class="m">준비물, 공부 계획, 견학 일정</div></span><span class="pt"></span></button>`}
+    <div class="sec"><h2>최근 일지</h2><button class="link" data-go="logs">전체 보기</button></div>
     ${recent.map(l=>`<button class="item dot" data-open-log="${l.id}"><span class="bx">✓</span><span class="tx"><div class="t">${esc(l.title||"실습 기록")}</div><div class="m">${fmtDate(l.date)}${l.place?" · "+esc(l.place):""}</div></span><span class="pt"></span></button>`).join("") || `<button class="item dot" data-act="newLog"><span class="bx o"></span><span class="tx"><div class="t">첫 실습 일지 쓰기</div><div class="m">견학·실습한 내용을 남겨 보세요</div></span><span class="pt"></span></button>`}
     <div class="sec"><h2>최근 노트</h2><button class="link" data-go="notes">전체 보기</button></div>
     ${S.notes.slice(0,3).map(noteItem).join("") || `<button class="item dot" data-act="newNote"><span class="bx o"></span><span class="tx"><div class="t">첫 공부 노트 쓰기</div><div class="m">해부학, 편자, 장비 이름 등</div></span><span class="pt"></span></button>`}
@@ -567,13 +580,98 @@ function quickAdd(){
   if(tab==="notes") return editNote();
   if(tab==="logs") return editLog(logDay?{ id:uid(), date:logDay, title:"", place:"", mentor:"", horse:"", did:"", learned:"", next:"", photos:[], createdAt:Date.now() }:null);
   if(tab==="cards" && !review) return editCard();
+  if(tab==="todos") return editTodo();
   openSheet(`${head("새로 만들기")}
     <div class="qa">
       <button class="dark" data-act="newLog"><span class="ic">${svg("logs",20)}</span><b>실습 일지</b><span>견학·실습 기록</span></button>
       <button data-act="newNote"><span class="ic">${svg("notes",20)}</span><b>공부 노트</b><span>이론·메모</span></button>
       <button data-act="newCard"><span class="ic">${svg("cards",20)}</span><b>암기 카드</b><span>용어·문제</span></button>
       <button data-act="goTimer"><span class="ic">${svg("timer",20)}</span><b>공부 타이머</b><span>시간 재기</span></button>
+      <button data-act="newTodo" style="grid-column:1/-1"><span class="ic">✓</span><b>체크리스트</b><span>할 일·준비물, 아이폰 알림</span></button>
     </div>`);
+}
+
+/* ---------- checklist ---------- */
+const TPL_PREP = ["장제 앞치마(챕스)","안전화","작업 장갑","보안경","수첩·펜","물·간식"];
+const nowHM = () => { const d=new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function todoState(t){
+  if(t.done) return "done";
+  if(!t.due) return "none";
+  const today=ymd();
+  if(t.due<today || (t.due===today && t.time && t.time<nowHM())) return "over";
+  if(t.due===today) return "today";
+  return "later";
+}
+const sortTodos = arr => arr.slice().sort((a,b)=>{
+  const ka=(a.due||"9999")+(a.time||"99"), kb=(b.due||"9999")+(b.time||"99");
+  return ka.localeCompare(kb) || (a.createdAt||0)-(b.createdAt||0);
+});
+const openTodos = () => sortTodos(S.todos.filter(t=>!t.done));
+const dueCount = () => S.todos.filter(t=>["over","today"].includes(todoState(t))).length;
+function todoMeta(t){
+  const st=todoState(t);
+  if(!t.due) return t.done && t.doneAt ? `완료 ${new Date(t.doneAt).toLocaleDateString("ko-KR")}` : "";
+  const when = (t.due===ymd()?"오늘":t.due===addDays(ymd(),1)?"내일":fmtDate(t.due)) + (t.time?" "+t.time:"");
+  return (st==="over"?"⚠︎ 지남 · ":"") + when + (t.notify?" · 🔔":"");
+}
+function todoItem(t){
+  const st=todoState(t);
+  return `<div class="item dot todo ${t.done?"is-done":""}"><button class="bx ${t.done?"":"o"}" data-toggle-todo="${t.id}" aria-label="완료 표시">${t.done?"✓":""}</button>
+    <button class="tx" data-open-todo="${t.id}" style="text-align:left"><div class="t">${esc(t.text)}</div>${todoMeta(t)?`<div class="m ${st==="over"?"over":""}">${esc(todoMeta(t))}</div>`:""}</button>
+    ${st==="over"||st==="today"?`<span class="pt" style="background:${st==="over"?"var(--bad)":"var(--ink)"}"></span>`:""}</div>`;
+}
+let todoFilter="open";
+function renderTodos(){
+  const open=openTodos(), done=sortTodos(S.todos.filter(t=>t.done)).reverse();
+  const groups=[["over","지난 할 일"],["today","오늘"],["later","예정"],["none","날짜 없음"]];
+  $("#view").innerHTML=`
+    <div class="card dark" style="padding:22px;border-radius:var(--r-xl)">${waves(.12)}
+      <div style="font-size:14px;opacity:.7">남은 할 일</div>
+      <div class="row" style="justify-content:space-between;margin-top:2px"><div style="font-size:34px;font-weight:800">${open.length}개</div><div style="text-align:right;font-size:13px;opacity:.75">오늘 ${S.todos.filter(t=>todoState(t)==="today").length} · 지남 ${S.todos.filter(t=>todoState(t)==="over").length}</div></div>
+    </div>
+    <div class="chips" style="margin-top:4px"><button class="chip ${todoFilter==="open"?"on":""}" data-todofilter="open">해야 할 것 ${open.length}</button><button class="chip ${todoFilter==="done"?"on":""}" data-todofilter="done">완료 ${done.length}</button><button class="chip" data-act="todoTpl">＋ 실습 준비물 템플릿</button></div>
+    ${todoFilter==="open"
+      ? (open.length ? groups.map(([k,l])=>{ const g=open.filter(t=>todoState(t)===k); return g.length?`<div class="sec" style="margin:18px 2px 10px"><h2 style="font-size:16px">${l}</h2></div>${g.map(todoItem).join("")}`:""; }).join("") : `<div class="empty">아래 + 버튼으로 할 일을 추가해 보세요<br><small>준비물, 공부 계획, 견학 일정 등</small></div>`)
+      : (done.length ? done.map(todoItem).join("")+`<button class="link" style="display:block;margin:16px auto" data-act="clearDone">완료 항목 모두 지우기</button>` : `<div class="empty">완료한 항목이 없어요</div>`)}`;
+}
+function editTodo(t){
+  t = t || { id:uid(), text:"", due:"", time:"", notify:false, done:false, createdAt:Date.now() };
+  const exists=S.todos.some(x=>x.id===t.id);
+  openSheet(`${head(exists?"할 일 편집":"새 할 일",`<button class="link" data-act="saveTodo">저장</button>`)}
+    <label class="f">할 일</label><input class="in-f" id="tText" value="${esc(t.text)}" placeholder="예: 11/3 이천 견학 – 질문 3개 준비">
+    <div class="grid2" style="margin:0"><div><label class="f">날짜</label><input class="in-f" type="date" id="tDue" value="${esc(t.due)}"></div><div><label class="f">시간</label><input class="in-f" type="time" id="tTime" value="${esc(t.time)}"></div></div>
+    <label class="item dot" style="margin-top:16px;cursor:pointer"><span class="tx"><div class="t" style="font-size:15px">아이폰 알림 받기</div><div class="m">저장하면 캘린더에 알림 일정으로 추가해요 (날짜·시간 필요)</div></span><input type="checkbox" id="tNotify" ${t.notify?"checked":""} style="width:22px;height:22px;accent-color:#2B2B2B"></label>
+    ${exists && t.due && t.time?`<button class="btn line block" data-act="todoIcs">📅 캘린더 알림 다시 추가</button>`:""}
+    ${exists?`<button class="btn danger block" style="margin-top:10px" data-act="askDel" data-col="todos" data-id="${t.id}">삭제</button><div id="cf"></div>`:""}`);
+  sheetCtx={ col:"todos", obj:t };
+}
+async function toggleTodo(id){
+  const t=S.todos.find(x=>x.id===id); if(!t) return;
+  await put("todos",{...t, done:!t.done, doneAt: !t.done?Date.now():null});
+}
+/* iPhone alert via calendar event (.ics with alarm) */
+function icsFor(t){
+  const [y,m,d]=t.due.split("-").map(Number), [hh,mm]=t.time.split(":").map(Number);
+  const utc = dt => dt.toISOString().replace(/[-:]/g,"").slice(0,15)+"Z";
+  const start=new Date(y,m-1,d,hh,mm), end=new Date(start.getTime()+15*60000);
+  const st=utc(start), en=utc(end);
+  const escI=s=>String(s).replace(/[\;,]/g,m=>"\\"+m).replace(/\n/g,"\\n");
+  return ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//jangje-note//KO","CALSCALE:GREGORIAN","BEGIN:VEVENT",
+    `UID:${t.id}@jangje-note`,`DTSTAMP:${new Date().toISOString().replace(/[-:]/g,"").slice(0,15)}Z`,
+    `DTSTART:${st}`,`DTEND:${en}`,`SUMMARY:${escI("✔︎ "+t.text)}`,"DESCRIPTION:장제노트 체크리스트",
+    "BEGIN:VALARM","ACTION:DISPLAY",`DESCRIPTION:${escI(t.text)}`,"TRIGGER:PT0M","END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n");
+}
+async function addToCalendar(t){
+  if(!t.due || !t.time) return toast("알림은 날짜와 시간이 있어야 해요");
+  const file=new File([icsFor(t)],`할일-${t.due}.ics`,{type:"text/calendar"});
+  if(navigator.canShare?.({files:[file]})){
+    try{ await navigator.share({files:[file]}); return; }catch(e){ if(e.name==="AbortError") return; }
+  }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=file.name; document.body.appendChild(a); a.click(); a.remove();
+  toast("캘린더 파일을 열어 '추가'를 눌러 주세요");
+}
+function updateBadge(){
+  try{ const n=dueCount(); if(navigator.setAppBadge){ n? navigator.setAppBadge(n) : navigator.clearAppBadge(); } }catch(e){}
 }
 
 /* ---------- sheets ---------- */
@@ -702,7 +800,7 @@ async function addStarter(){
 
 /* ---------- events ---------- */
 document.addEventListener("click", async e=>{
-  const el=e.target.closest("[data-act],[data-go],[data-open-note],[data-open-log],[data-open-card],[data-open-session],[data-notecat],[data-logday],[data-cardcat],[data-topic],[data-rmph]");
+  const el=e.target.closest("[data-act],[data-go],[data-open-note],[data-open-log],[data-open-card],[data-open-session],[data-open-todo],[data-toggle-todo],[data-todofilter],[data-notecat],[data-logday],[data-cardcat],[data-topic],[data-rmph]");
   if(!el) return;
   const d=el.dataset;
   if(d.go){ tab=d.go; ls.set("fn_tab",tab); render(); window.scrollTo(0,0); return; }
@@ -710,6 +808,9 @@ document.addEventListener("click", async e=>{
   if(d.openLog) return viewLog(S.logs.find(x=>x.id===d.openLog));
   if(d.openCard) return editCard(S.cards.find(x=>x.id===d.openCard));
   if(d.openSession) return editSession(S.sessions.find(x=>x.id===d.openSession));
+  if(d.openTodo) return editTodo(S.todos.find(x=>x.id===d.openTodo));
+  if(d.toggleTodo) return toggleTodo(d.toggleTodo);
+  if(d.todofilter){ todoFilter=d.todofilter; return render(); }
   if(d.notecat){ noteCat=d.notecat; return render(); }
   if(d.logday!=null){ logDay = (d.logday && logDay!==d.logday) ? d.logday : null; return render(); }
   if(d.cardcat){ cardCat=d.cardcat; return render(); }
@@ -760,6 +861,21 @@ document.addEventListener("click", async e=>{
     }
     case "tCancel": ls.set("fn_timer",null); clearInterval(tick); return render();
     case "manualSession": return editSession();
+    case "newTodo": return editTodo();
+    case "askNotif": { if(!window.Notification) return toast("홈 화면 앱에서만 쓸 수 있어요"); const r=await Notification.requestPermission(); updateBadge(); toast(r==="granted"?"배지 알림을 허용했어요":"허용되지 않았어요"); return openSettings(); }
+    case "saveTodo": {
+      const t={...sheetCtx.obj, text:$("#tText").value.trim(), due:$("#tDue").value, time:$("#tTime").value, notify:$("#tNotify").checked};
+      if(!t.text) return toast("할 일을 입력해 주세요");
+      if(t.time && !t.due) t.due=ymd();
+      const prev=S.todos.find(x=>x.id===t.id);
+      const changed=!prev || prev.due!==t.due || prev.time!==t.time || prev.text!==t.text || !prev.notify;
+      closeSheet(); await put("todos",t);
+      if(t.notify && changed){ if(!t.time){ toast("알림은 시간이 있어야 해요 — 시간을 넣어 주세요"); return; } return addToCalendar(t); }
+      return toast("저장했어요");
+    }
+    case "todoIcs": return addToCalendar({...sheetCtx.obj, text:$("#tText").value.trim()||sheetCtx.obj.text, due:$("#tDue").value, time:$("#tTime").value});
+    case "todoTpl": { const now=Date.now(); for(let i=0;i<TPL_PREP.length;i++) await put("todos",{ id:uid(), text:TPL_PREP[i], due:"", time:"", notify:false, done:false, createdAt:now+i }); todoFilter="open"; return toast("준비물 6개를 추가했어요"); }
+    case "clearDone": { for(const t of S.todos.filter(x=>x.done)) await del("todos",t.id); return toast("완료 항목을 지웠어요"); }
     case "settings": return openSettings();
     case "quickAdd": return quickAdd();
     case "newLog": return editLog();
