@@ -763,7 +763,7 @@ function renderNews(){
   const all=NEWS.items||[]; const list=all.filter(n=>newsTag==="전체"||(n.tags||[]).includes(newsTag));
   const up=NEWS.updated?new Date(NEWS.updated):null;
   $("#view").innerHTML=`
-    <div class="nupd">${up?`${up.getMonth()+1}월 ${up.getDate()}일 ${up.getHours()<12?"오전":"오후"} ${(up.getHours()%12)||12}:${String(up.getMinutes()).padStart(2,"0")} 업데이트 · 장제 > 마사회 > 말산업 > 승마 > 경마 순`:"매일 아침 7시에 자동으로 모아와요"}</div>
+    <div class="nupd">${up?`${up.getMonth()+1}월 ${up.getDate()}일 ${up.getHours()<12?"오전":"오후"} ${(up.getHours()%12)||12}:${String(up.getMinutes()).padStart(2,"0")} 업데이트 · 장제 소식 우선`:"매일 아침 7시에 자동으로 모아와요"}</div>
     <div class="stick"><div class="chips">${NEWS_TAGS.map(t=>`<button class="chip ${newsTag===t?"on":""}" data-newstag="${t}">${t}</button>`).join("")}</div></div>
     ${list.length?`<div class="nlist">${list.map(n=>`<a class="nli" ${nLink(n)}><span class="tx"><div class="nt">${nTitle(n)}</div><div class="nm">${nTag(n)}${esc(n.src)} · ${newsAgo(n.ts)}</div></span>${nImg(n)}</a>`).join("")}</div>`
       : `<div class="empty">${all.length?"이 주제의 기사가 아직 없어요":"아직 모아온 뉴스가 없어요<br><small>매일 아침 7시에 자동으로 들어와요</small>"}</div>`}`;
