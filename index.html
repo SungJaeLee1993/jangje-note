@@ -751,22 +751,21 @@ const newsAgo=ts=>{ const d=new Date(ts), m=(Date.now()-d)/6e4; if(m<60) return 
   return ymd(d)===addDays(ymd(),-1)?"어제":`${d.getMonth()+1}월 ${d.getDate()}일`; };
 const isNew=ts=>Date.now()-new Date(ts)<864e5;
 const nImg=(n,cls="")=> n.img?`<img class="nimg ${cls}" src="${esc(n.img)}" loading="lazy" decoding="async" alt="" onerror="this.outerHTML='<div class=&quot;nimg nph ${cls}&quot;>${svg("logs",26).replace(/"/g,"&quot;")}</div>'">`:`<div class="nimg nph ${cls}">${svg("logs",26)}</div>`;
+const NPRI=["장제","마사회","말산업","승마","경마"]; const nTag=n=>{ const t=NPRI.find(x=>(n.tags||[]).includes(x)); return t?`<b style="color:var(--sub2);font-weight:600">${t}</b> · `:""; };
 const nTitle=n=>`${isNew(n.ts)?'<span class="nnew">NEW</span>':""}${esc(n.title)}`;
 const nLink=n=>`href="${esc(n.url)}" target="_blank" rel="noopener"`;
 function newsHome(){
-  const it=(NEWS.items||[]).slice(0,6); if(!it.length) return "";
-  return `<div class="sec"><h2>말 뉴스</h2><button class="link" data-go="news">전체 보기</button></div>
-  <div class="hscroll nws">${it.map(n=>`<a class="ncard" ${nLink(n)}>${nImg(n)}<div class="nb"><div class="nt">${nTitle(n)}</div><div class="nm">${esc(n.src)} · ${newsAgo(n.ts)}</div></div></a>`).join("")}</div>`;
+  const all=NEWS.items||[], it=all.slice(0,5); if(!it.length) return "";
+  return `<div class="sec"><h2>말 뉴스</h2>${all.length>5?`<button class="link" data-go="news">더보기</button>`:""}</div>
+  <div class="hscroll nws">${it.map(n=>`<a class="ncard" ${nLink(n)}>${nImg(n)}<div class="nb"><div class="nt">${nTitle(n)}</div><div class="nm">${nTag(n)}${esc(n.src)} · ${newsAgo(n.ts)}</div></div></a>`).join("")}</div>`;
 }
 function renderNews(){
   const all=NEWS.items||[]; const list=all.filter(n=>newsTag==="전체"||(n.tags||[]).includes(newsTag));
-  const groups=[]; let last=null;
-  for(const n of list){ const d=ymd(new Date(n.ts)); const lab=d===ymd()?"오늘":d===addDays(ymd(),-1)?"어제":fmtDate(d); if(lab!==last){ groups.push({lab,items:[]}); last=lab; } groups.at(-1).items.push(n); }
   const up=NEWS.updated?new Date(NEWS.updated):null;
   $("#view").innerHTML=`
-    <div class="nupd">${up?`${up.getMonth()+1}월 ${up.getDate()}일 ${up.getHours()<12?"오전":"오후"} ${(up.getHours()%12)||12}:${String(up.getMinutes()).padStart(2,"0")} 업데이트 · 매일 아침 자동`:"매일 아침 7시에 자동으로 모아와요"}</div>
+    <div class="nupd">${up?`${up.getMonth()+1}월 ${up.getDate()}일 ${up.getHours()<12?"오전":"오후"} ${(up.getHours()%12)||12}:${String(up.getMinutes()).padStart(2,"0")} 업데이트 · 장제 > 마사회 > 말산업 > 승마 > 경마 순`:"매일 아침 7시에 자동으로 모아와요"}</div>
     <div class="stick"><div class="chips">${NEWS_TAGS.map(t=>`<button class="chip ${newsTag===t?"on":""}" data-newstag="${t}">${t}</button>`).join("")}</div></div>
-    ${groups.map(g=>`<div class="nday">${g.lab}</div><div class="nlist">${g.items.map(n=>`<a class="nli" ${nLink(n)}><span class="tx"><div class="nt">${nTitle(n)}</div><div class="nm">${esc(n.src)} · ${newsAgo(n.ts)}</div></span>${nImg(n)}</a>`).join("")}</div>`).join("")
+    ${list.length?`<div class="nlist">${list.map(n=>`<a class="nli" ${nLink(n)}><span class="tx"><div class="nt">${nTitle(n)}</div><div class="nm">${nTag(n)}${esc(n.src)} · ${newsAgo(n.ts)}</div></span>${nImg(n)}</a>`).join("")}</div>`:""}
       || `<div class="empty">${all.length?"이 주제의 기사가 아직 없어요":"아직 모아온 뉴스가 없어요<br><small>매일 아침 7시에 자동으로 들어와요</small>"}</div>`}`;
 }
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-newstag]"); if(!b) return; newsTag=b.dataset.newstag; render(); },true);
@@ -1638,7 +1637,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.29-12";
+const APP_VERSION="2026.10.29-13";
 let swReg=null;
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{swReg=r;}).catch(()=>{});
 async function checkUpdate(manual){

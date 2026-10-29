@@ -9,7 +9,6 @@ from email.utils import parsedate_to_datetime
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "news", "news.json")
 IMG = os.path.join(ROOT, "news", "img")
-KEEP_DAYS, MAX_ITEMS, NEW_IMG_LIMIT = 30, 120, 40
 UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
 
 # (칩 태그, 검색어)
@@ -57,7 +56,7 @@ def decode(gurl):
     try:
         from googlenewsdecoder import gnewsdecoder
         r = gnewsdecoder(gurl, interval=0.3)
-        if r.get("status") and r.get("decoded_url"): return r["decoded_url"]
+        if (r.get("status") or r.get("success")) and r.get("decoded_url"): return r["decoded_url"]
         DEBUG.append("decode: " + str(r)[:300])
     except Exception as e:
         DEBUG.append("decode exc: " + repr(e)[:300])
@@ -88,53 +87,69 @@ def tags_for(title, base):
     t = {k for k, ws in TAG_WORDS.items() if any(w in title for w in ws)}
     return sorted(t or {base})
 
+PRIORITY = ["장제", "마사회", "말산업", "승마", "경마"]   # 앞일수록 먼저
+PICK = 30          # 저장 개수 (홈엔 앞 5개, 더보기에 전체)
+IMG_N = 15
+
+def rank(it): return min(PRIORITY.index(t) for t in it["tags"])
+
+def grams(t):
+    t = norm(t); return {t[i:i + 2] for i in range(len(t) - 1)}
+
+def similar(a, b):
+    A, B = grams(a), grams(b)
+    return bool(A and B) and len(A & B) / min(len(A), len(B)) > 0.5
+
 def main():
     os.makedirs(IMG, exist_ok=True)
-    try: old = json.load(open(OUT, encoding="utf-8"))["items"]
-    except Exception: old = []
-    by = {norm(i["title"]): i for i in old}
-    cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=KEEP_DAYS)
-    fresh = []
+    try: old = {i["id"]: i for i in json.load(open(OUT, encoding="utf-8"))["items"]}
+    except Exception: old = {}
+    now = dt.datetime.now(dt.timezone.utc)
+    cands, seen = [], set()
     for tag, q in QUERIES:
         try:
             for it in rss(q):
                 if any(b in it["title"] for b in BLOCK): continue
-                if dt.datetime.fromisoformat(it["ts"]) < cutoff: continue
                 k = norm(it["title"])
-                if not k: continue
-                if k in by: continue
+                if not k or k in seen: continue
+                seen.add(k)
                 it["tags"] = tags_for(it["title"], tag); it["id"] = hashlib.md5(k.encode()).hexdigest()[:10]
-                by[k] = it; fresh.append(it)
+                cands.append(it)
         except Exception as e:
-            print("rss fail", q, e)
+            DEBUG.append("rss fail " + q + " " + repr(e)[:200])
         time.sleep(1)
-    print("new items:", len(fresh))
-    # 이전 실행에서 원문 주소를 못 푼 기사 재시도
-    retry = [i for i in by.values() if "news.google.com" in i.get("url", "") and not i.get("img")][:20]
-    for it in retry: fresh.append(it); it["gurl"] = it.pop("url")
-
-    fresh.sort(key=lambda i: i["ts"], reverse=True)
-    for n, it in enumerate(fresh):
-        it["url"] = decode(it.pop("gurl"))
-        if n >= NEW_IMG_LIMIT or "news.google.com" in it["url"]: continue
+    age = lambda i: now - dt.datetime.fromisoformat(i["ts"])
+    pool = [i for i in cands if age(i) <= dt.timedelta(days=3)]
+    if len(pool) < PICK: pool = cands
+    pool.sort(key=lambda i: (rank(i), -dt.datetime.fromisoformat(i["ts"]).timestamp()))
+    picked = []
+    for it in pool:
+        if any(similar(it["title"], p["title"]) for p in picked): continue
+        picked.append(it)
+        if len(picked) == PICK: break
+    print("candidates:", len(cands), "picked:", [(p["tags"], p["title"][:20]) for p in picked])
+    for n, it in enumerate(picked):
+        prev = old.get(it["id"])
+        if prev and "news.google.com" not in prev.get("url", "") :
+            it["url"] = prev["url"]
+            if prev.get("img") and os.path.exists(os.path.join(ROOT, prev["img"])): it["img"] = prev["img"]; it.pop("gurl", None); continue
+        else:
+            it["url"] = decode(it["gurl"])
+        it.pop("gurl", None)
+        if n >= IMG_N or "news.google.com" in it["url"]: continue
         try:
             u = og_image(it["url"])
             if u: it["img"] = save_thumb(u, it["id"])
         except Exception as e:
             DEBUG.append("img: " + it["src"] + " " + repr(e)[:200])
         time.sleep(0.4)
-    for it in by.values():
-        if "gurl" in it: it["url"] = it.pop("gurl")
-        if not it.get("img"): it.pop("img", None)
-    items = [i for i in by.values() if dt.datetime.fromisoformat(i["ts"]) >= cutoff]
-    items.sort(key=lambda i: i["ts"], reverse=True); items = items[:MAX_ITEMS]
-    keep = {os.path.basename(i["img"]) for i in items if i.get("img")}
+    keep = {os.path.basename(i["img"]) for i in picked if i.get("img")}
     for f in os.listdir(IMG):
         if f.endswith(".jpg") and f not in keep: os.remove(os.path.join(IMG, f))
-    json.dump({"updated": dt.datetime.now(dt.timezone.utc).isoformat(), "items": items},
+    json.dump({"updated": now.isoformat(), "items": picked},
               open(OUT, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
-    print("total:", len(items), "imgs:", len(keep))
     open(os.path.join(ROOT, "news", "_debug.txt"), "w").write("\n".join(DEBUG[:30]))
+    print("imgs:", len(keep))
 
 if __name__ == "__main__":
     main()
