@@ -394,6 +394,27 @@ nav .plus:active{transform:scale(.93)}
 .nli .nimg{width:76px;height:76px;aspect-ratio:auto;border-radius:14px;flex:0 0 auto}
 .nday{font-size:13px;font-weight:700;color:var(--sub2);margin:18px 4px 8px}
 .nupd{font-size:12.5px;color:var(--sub);margin:-6px 2px 12px}
+
+/* game */
+.game [hidden]{display:none!important}
+.game{position:fixed;inset:0;z-index:80;background:var(--bg);touch-action:none;-webkit-user-select:none;user-select:none;animation:fadein .25s ease}
+.game canvas{position:absolute;left:0;right:0;top:22%;height:56%;width:100%}
+.gup{position:absolute;left:24px;right:24px;top:calc(var(--safe-t) + 26px)}
+.gupr{display:flex;justify-content:space-between;font-size:15px}.gupr b:last-child{font-variant-numeric:tabular-nums}
+.gbar{height:8px;border-radius:4px;background:#E4E6EB;margin-top:10px;overflow:hidden}.gbar i{display:block;height:100%;width:0;background:var(--primary);border-radius:4px;transition:width .2s}
+.gups{font-size:12.5px;color:var(--sub);margin-top:8px}
+.gx{position:absolute;right:16px;top:calc(var(--safe-t) + 14px);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink)}
+.gsc{position:absolute;right:24px;top:calc(22% + 6px);display:flex;gap:16px;align-items:baseline;font-variant-numeric:tabular-nums;font-family:"Montserrat",sans-serif;letter-spacing:.04em;z-index:1}
+.gsc span{font-size:12px;font-weight:600;color:var(--sub)}.gsc span b{color:var(--sub2)}.gsc>b{font-size:20px;font-weight:800}
+.gmsg{position:absolute;left:0;right:0;top:40%;text-align:center;font-family:"Montserrat",sans-serif;font-weight:700;letter-spacing:.18em;font-size:14px;color:var(--sub2);animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+.gover{position:absolute;left:30px;right:30px;top:28%;background:#fff;border-radius:28px;padding:26px 22px 22px;text-align:center;box-shadow:0 20px 50px rgba(30,34,50,.12);font-family:"Montserrat",sans-serif;animation:gpop .28s cubic-bezier(.2,.9,.3,1.3)}
+.gover .gt{font-size:24px;font-weight:800;letter-spacing:.06em}
+.grow{display:flex;justify-content:center;gap:36px;margin:16px 0 18px}.grow span{display:block;font-size:11.5px;font-weight:600;letter-spacing:.12em;color:var(--sub)}.grow b{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
+.gnew{display:inline-block;background:var(--primary);color:#fff;font-size:12px;font-weight:700;letter-spacing:.1em;border-radius:99px;padding:6px 12px;margin:-6px 0 16px}
+.gbtn{display:block;width:100%;background:var(--primary);color:#fff;border-radius:18px;padding:16px;font-size:16px;font-weight:700;letter-spacing:.08em;font-family:"Montserrat","Apple SD Gothic Neo",sans-serif}
+.gdone{position:absolute;left:24px;right:24px;width:auto;bottom:calc(var(--safe-b) + 28px);letter-spacing:0}
+@keyframes gpop{from{transform:scale(.9);opacity:0}}
 </style>
 </head>
 <body>
@@ -681,6 +702,7 @@ async function openSettings(){
       <button class="btn line block" data-act="askNotif">${(window.Notification&&Notification.permission==="granted")?"✓ 배지 알림 허용됨":"앱 아이콘 배지 허용"}</button>
     </div>
     <div class="card"><div class="row" style="justify-content:space-between"><div><b>앱 버전</b><div style="font-size:13px;color:var(--sub)">${APP_VERSION} · 업데이트해도 기록은 유지돼요</div></div><button class="btn line" style="padding:10px 14px" data-act="checkUpdate">업데이트 확인</button></div><div style="font-size:13px;color:var(--bad);margin-top:10px">⚠︎ 앱을 홈 화면에서 삭제하면 기록이 모두 지워져요.</div></div>
+    <button class="card" data-act="playGame" style="display:flex;width:100%;justify-content:space-between;align-items:center;text-align:left"><div><b>미니게임</b><div style="font-size:13px;color:var(--sub)">말 타고 장애물 넘기 · 최고 ${ls.get("fn_gameBest",0).toLocaleString()}</div></div>${svg("arrow",18)}</button>
     ${standalone?"":`<div class="card"><b>홈 화면에 추가하는 법</b><div style="font-size:14px;color:var(--sub);margin-top:6px;line-height:1.7">1. 사파리 아래쪽 <b>공유 버튼</b>(□↑) 누르기<br>2. <b>홈 화면에 추가</b> 선택<br>3. 홈 화면의 <b>장제노트</b> 아이콘으로 열기</div></div>`}`);
 }
 
@@ -1618,9 +1640,8 @@ document.addEventListener("click", async e=>{
     case "clearDone": { for(const t of S.todos.filter(x=>x.done)) await del("todos",t.id); return toast("완료 항목을 지웠어요"); }
     case "settings": return openSettings();
     case "shareVid": return shareVideo(failVid);
-    case "doUpdate": { toast("업데이트 중…"); ls.set("fn_updTried",{v:newVer,t:Date.now()});
-      try{ await swReg?.update?.(); const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }catch(e){}
-      location.replace(location.pathname+"?v="+encodeURIComponent(newVer||Date.now())); return; }   // new URL skips GitHub's 10-minute page cache
+    case "doUpdate": { hideUpdBar(); openGame(true); return; }
+    case "playGame": closeSheet(); openGame(false); return;
     case "hideUpd": return hideUpdBar();
     case "checkUpdate": return checkUpdate(true);
     case "quickAdd": return quickAdd();
@@ -1637,7 +1658,104 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.29-13";
+const APP_VERSION="2026.10.29-14";
+/* ---------- 업데이트 미니게임 ---------- */
+const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
+const horseImg=new Image(); horseImg.src="horse.png";
+let G=null;
+function openGame(updating){
+  if(G) return; const el=document.createElement("div"); el.id="game"; el.className="game";
+  el.innerHTML=`${updating?`<div class="gup"><div class="gupr"><b id="gupT">업데이트 중…</b><b id="gupP">0%</b></div><div class="gbar"><i id="gupB"></i></div><div class="gups" id="gupS">기록은 그대로 남아 있어요 · 기다리는 동안 한 판!</div></div>`
+    :`<button class="gx" data-gx aria-label="닫기">${svg("x",22)}</button>`}
+    <div class="gsc"><span>BEST <b id="gBest">0</b></span><b id="gScore">0</b></div>
+    <canvas id="gCv"></canvas>
+    <div class="gmsg" id="gMsg">TAP TO START</div>
+    <div class="gover" id="gOver" hidden><div class="gt">GAME OVER</div><div class="grow"><div><span>SCORE</span><b id="gS2">0</b></div><div><span>BEST</span><b id="gB2">0</b></div></div><div class="gnew" id="gNew" hidden>NEW BEST!</div><button class="gbtn" data-gretry>RETRY</button></div>
+    ${updating?`<button class="gbtn gdone" id="gDone" data-gdone hidden>새 버전 시작하기</button>`:""}`;
+  document.body.appendChild(el); document.body.style.overflow="hidden";
+  const cv=el.querySelector("#gCv"), ctx=cv.getContext("2d");
+  G={el,cv,ctx,state:"ready",best:ls.get("fn_gameBest",0),score:0,raf:0,updating,prog:0,updDone:false,t0:performance.now()};
+  $("#gBest").textContent=G.best;
+  const fit=()=>{ const r=cv.getBoundingClientRect(), d=Math.min(3,devicePixelRatio||1); cv.width=r.width*d; cv.height=r.height*d; G.W=r.width; G.H=r.height; G.d=d; G.ground=Math.round(r.height*.72); };
+  fit(); G.fit=fit; addEventListener("resize",fit);
+  gReset(); G.last=performance.now(); G.raf=requestAnimationFrame(gLoop);
+  el.addEventListener("pointerdown",e=>{
+    if(e.target.closest("[data-gretry]")){ gReset(); gStart(); return; }
+    if(e.target.closest("[data-gdone]")){ location.replace(location.pathname+"?v="+encodeURIComponent(newVer||Date.now())); return; }
+    if(e.target.closest("[data-gx]")){ closeGame(); return; }
+    if(e.target.closest(".gup")) return;
+    if(G.state==="ready"){ gStart(); gJump(); } else if(G.state==="run") gJump();
+  });
+  if(updating) runUpdate();
+}
+function closeGame(){ if(!G) return; cancelAnimationFrame(G.raf); removeEventListener("resize",G.fit); G.el.remove(); G=null; document.body.style.overflow=""; }
+function gReset(){ Object.assign(G,{state:"ready",y:0,vy:0,dist:0,speed:330,obs:[],next:520,score:0,newBest:false}); $("#gScore").textContent="0"; $("#gOver").hidden=true; $("#gMsg").hidden=false; }
+function gStart(){ G.state="run"; $("#gMsg").hidden=true; $("#gOver").hidden=true; }
+function gJump(){ if(G.y===0){ G.vy=-860; buzz(8); } }
+function gOverFn(){
+  G.state="over"; buzz(40);
+  if(G.score>G.best){ G.best=G.score; G.newBest=true; ls.set("fn_gameBest",G.best); }
+  $("#gS2").textContent=G.score.toLocaleString(); $("#gB2").textContent=G.best.toLocaleString(); $("#gBest").textContent=G.best.toLocaleString();
+  $("#gNew").hidden=!G.newBest; $("#gOver").hidden=false;
+}
+function gSpawn(){
+  const k=Math.random(), fast=G.speed>560;
+  const t = k<.55?{type:"hurdle",w:26,h:38+Math.random()*22} : k<.85?{type:"hay",w:40,h:30} : {type:"hurdle",w:26,h:58+(fast?6:0)};
+  t.x=G.W+20; G.obs.push(t);
+  if(fast && Math.random()<.25) G.obs.push({type:"hurdle",w:26,h:36,x:t.x+t.w+46});
+  G.next=G.speed*.62+150+Math.random()*260;
+}
+function gLoop(now){
+  if(!G) return; const dt=Math.max(0,Math.min(.033,(now-G.last)/1000)); G.last=now;
+  if(G.state==="run"){
+    G.speed=Math.min(920,G.speed+16*dt); const dx=G.speed*dt; G.dist+=dx;
+    G.vy+=2700*dt; G.y=Math.min(0,G.y+G.vy*dt); if(G.y===0) G.vy=0;
+    for(const o of G.obs) o.x-=dx; G.obs=G.obs.filter(o=>o.x>-80);
+    G.next-=dx; if(G.next<=0) gSpawn();
+    const sc=Math.floor(G.dist/12); if(sc!==G.score){ G.score=sc; $("#gScore").textContent=sc.toLocaleString(); }
+    // 충돌
+    const hx=G.hx, hb={l:hx+G.hw*.38,r:hx+G.hw*.86,b:G.ground+G.y-4,t:G.ground+G.y-G.hh*.55};
+    for(const o of G.obs){ if(hb.r>o.x+4 && hb.l<o.x+o.w-4 && hb.b>G.ground-o.h+4){ gOverFn(); break; } }
+  } else if(G.state==="ready"){ G.dist+=60*dt; }
+  if(G.updating) gProg(dt);
+  gDraw(); G.raf=requestAnimationFrame(gLoop);
+}
+function gDraw(){
+  const {ctx,d,W,H,ground}=G; ctx.setTransform(d,0,0,d,0,0); ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle="#2B2B2B"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,ground+.5); ctx.lineTo(W,ground+.5); ctx.stroke();
+  ctx.strokeStyle="#C9CCD3"; ctx.lineCap="round"; const off=G.dist%60;
+  for(let i=0;i<W/60+2;i++){ const x=i*60-off, yy=ground+14+(i%3)*9; ctx.beginPath(); ctx.moveTo(x,yy); ctx.lineTo(x+10+(i%2)*10,yy); ctx.stroke(); }
+  for(const o of G.obs) gObs(o);
+  // 말
+  const H0=Math.min(84,Math.max(60,H*.16)); G.hh=H0; G.hw=H0*229/150; G.hx=Math.max(16,W*.08);
+  let f,fr; if(G.y<0||G.vy<0){ fr = G.vy<-380 ? HSPR.jump[1] : G.vy<260 ? HSPR.jump[0] : HSPR.run[5]; }
+  else { f=Math.floor(G.dist/(G.state==="run"?26:14))%8; fr=HSPR.run[f]; }
+  const s=H0/150, w=fr[2]*s, h=fr[3]*s, cx=G.hx+G.hw/2;
+  if(horseImg.complete) ctx.drawImage(horseImg,fr[0],fr[1],fr[2],fr[3],cx-w/2,ground+G.y-h+2,w,h);
+}
+function gObs(o){
+  const {ctx,ground}=G; ctx.strokeStyle=ctx.fillStyle="#2B2B2B"; ctx.lineCap="round";
+  if(o.type==="hurdle"){ ctx.lineWidth=4.5; ctx.beginPath();
+    ctx.moveTo(o.x,ground); ctx.lineTo(o.x,ground-o.h); ctx.moveTo(o.x+o.w,ground); ctx.lineTo(o.x+o.w,ground-o.h);
+    ctx.moveTo(o.x-3,ground-o.h+4); ctx.lineTo(o.x+o.w+3,ground-o.h+4); ctx.moveTo(o.x-3,ground-o.h*.55); ctx.lineTo(o.x+o.w+3,ground-o.h*.55); ctx.stroke(); }
+  else { const r=6; ctx.beginPath(); ctx.roundRect(o.x,ground-o.h,o.w,o.h,r); ctx.fill();
+    ctx.strokeStyle="#F5F6F8"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(o.x+5,ground-o.h*.66); ctx.lineTo(o.x+o.w-5,ground-o.h*.66); ctx.moveTo(o.x+5,ground-o.h*.33); ctx.lineTo(o.x+o.w-5,ground-o.h*.33); ctx.stroke(); }
+}
+// 업데이트 진행 — 실제 작업이 끝나도 최소 6초는 채우며 보여줌
+async function runUpdate(){
+  ls.set("fn_updTried",{v:newVer,t:Date.now()});
+  try{ await swReg?.update?.(); const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k)));
+    await fetch(location.pathname+"?v="+encodeURIComponent(newVer||Date.now()),{cache:"reload"}); }catch(e){}
+  if(G) G.updDone=true;
+}
+function gProg(dt){
+  const el=performance.now()-G.t0; const target=G.updDone&&el>6000?100:Math.min(92,el/6000*92);
+  G.prog+= (target-G.prog)*Math.min(1,dt*3); const p=Math.round(G.prog>=99.5?100:G.prog);
+  if(p!==G.pShown){ G.pShown=p; $("#gupP").textContent=p+"%"; $("#gupB").style.width=p+"%";
+    if(p===100){ $("#gupT").textContent="업데이트 완료!"; $("#gupS").textContent="기다리는 동안 한 판 더 해도 돼요"; $("#gDone").hidden=false; } }
+}
+document.addEventListener("visibilitychange",()=>{ if(document.hidden && G && G.state==="run") gOverFn(); });
+
 let swReg=null;
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{swReg=r;}).catch(()=>{});
 async function checkUpdate(manual){

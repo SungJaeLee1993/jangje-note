@@ -1,5 +1,5 @@
 const CACHE = "farrier-v7";
-const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png", "exam/bank.json", "exam/9_1.jpg", "exam/9_2.jpg", "exam/9_3.jpg", "exam/9_4.jpg", "exam/10_2.png", "exam/10_3.png", "exam/10_4.png"];
+const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png", "horse.png", "exam/bank.json", "exam/9_1.jpg", "exam/9_2.jpg", "exam/9_3.jpg", "exam/9_4.jpg", "exam/10_2.png", "exam/10_3.png", "exam/10_4.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" }))))); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {
