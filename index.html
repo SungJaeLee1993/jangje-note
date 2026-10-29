@@ -379,6 +379,21 @@ nav .plus:active{transform:scale(.93)}
 .ymon{font-size:13px;font-weight:700;color:var(--sub2);margin:18px 2px 8px}
 .swp>.sitem{margin-bottom:0;position:relative;z-index:1}
 .hidden{display:none!important}
+
+/* news */
+.nws .ncard{flex:0 0 66%;scroll-snap-align:start;background:var(--card);border-radius:22px;overflow:hidden;box-shadow:var(--shadow-s);display:flex;flex-direction:column;text-decoration:none;color:inherit}
+.nimg{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:var(--tint)}
+.nph{display:flex;align-items:center;justify-content:center;color:#B9C0CC;background:var(--tint)}
+.ncard .nb{padding:12px 14px 14px}
+.nt{font-size:15px;font-weight:600;line-height:1.42;letter-spacing:-.01em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nm{font-size:12.5px;color:var(--sub);margin-top:4px}
+.nnew{display:inline-block;background:var(--primary);color:#fff;font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 6px;margin-right:6px;vertical-align:2px}
+.nlist{background:var(--card);border-radius:var(--r-lg);padding:4px 18px;box-shadow:var(--shadow-s);margin-bottom:8px}
+.nli{display:flex;gap:14px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line);text-decoration:none;color:inherit}
+.nli:last-child{border:0}.nli .tx{flex:1;min-width:0}
+.nli .nimg{width:76px;height:76px;aspect-ratio:auto;border-radius:14px;flex:0 0 auto}
+.nday{font-size:13px;font-weight:700;color:var(--sub2);margin:18px 4px 8px}
+.nupd{font-size:12.5px;color:var(--sub);margin:-6px 2px 12px}
 </style>
 </head>
 <body>
@@ -465,6 +480,7 @@ async function del(col, id){
 async function dropMedia(id){ for(const k of [id,id+"_t"]){ try{ await idbDel("media",k); }catch(e){} if(URLS[k]){ URL.revokeObjectURL(URLS[k]); delete URLS[k]; } } }
 
 async function init(){
+  loadNews();
   $("#view").innerHTML=skeleton(); drawNav();
   try{
     idb = await openIDB();
@@ -723,18 +739,51 @@ $("#nav").addEventListener("click",e=>{ const b=e.target.closest("[data-tab]"); 
 let modeInfo={ text:"불러오는 중…", warn:false };
 const modeBadge = () => modeInfo.hide ? "" : `<button class="mode ${modeInfo.warn?"warn":""}" data-act="settings">${esc(modeInfo.text)}</button>`;
 
+
+/* ---------- 말 뉴스 ---------- */
+let NEWS=ls.get("fn_news",{updated:null,items:[]}), newsTag="전체";
+const NEWS_TAGS=["전체","장제","마사회","승마","경마","말산업"];
+async function loadNews(){
+  try{ const r=await fetch("news/news.json?t="+Date.now(),{cache:"no-store"}); if(!r.ok) return; const j=await r.json();
+    if(j && j.updated!==NEWS.updated){ NEWS=j; ls.set("fn_news",{updated:j.updated,items:(j.items||[]).slice(0,60)}); if((tab==="home"||tab==="news") && !sheetOpen) render(); } }catch(e){}
+}
+const newsAgo=ts=>{ const d=new Date(ts), m=(Date.now()-d)/6e4; if(m<60) return "방금"; if(m<1440) return Math.floor(m/60)+"시간 전";
+  return ymd(d)===addDays(ymd(),-1)?"어제":`${d.getMonth()+1}월 ${d.getDate()}일`; };
+const isNew=ts=>Date.now()-new Date(ts)<864e5;
+const nImg=(n,cls="")=> n.img?`<img class="nimg ${cls}" src="${esc(n.img)}" loading="lazy" decoding="async" alt="" onerror="this.outerHTML='<div class=&quot;nimg nph ${cls}&quot;>${svg("logs",26).replace(/"/g,"&quot;")}</div>'">`:`<div class="nimg nph ${cls}">${svg("logs",26)}</div>`;
+const nTitle=n=>`${isNew(n.ts)?'<span class="nnew">NEW</span>':""}${esc(n.title)}`;
+const nLink=n=>`href="${esc(n.url)}" target="_blank" rel="noopener"`;
+function newsHome(){
+  const it=(NEWS.items||[]).slice(0,6); if(!it.length) return "";
+  return `<div class="sec"><h2>말 뉴스</h2><button class="link" data-go="news">전체 보기</button></div>
+  <div class="hscroll nws">${it.map(n=>`<a class="ncard" ${nLink(n)}>${nImg(n)}<div class="nb"><div class="nt">${nTitle(n)}</div><div class="nm">${esc(n.src)} · ${newsAgo(n.ts)}</div></div></a>`).join("")}</div>`;
+}
+function renderNews(){
+  const all=NEWS.items||[]; const list=all.filter(n=>newsTag==="전체"||(n.tags||[]).includes(newsTag));
+  const groups=[]; let last=null;
+  for(const n of list){ const d=ymd(new Date(n.ts)); const lab=d===ymd()?"오늘":d===addDays(ymd(),-1)?"어제":fmtDate(d); if(lab!==last){ groups.push({lab,items:[]}); last=lab; } groups.at(-1).items.push(n); }
+  const up=NEWS.updated?new Date(NEWS.updated):null;
+  $("#view").innerHTML=`
+    <div class="nupd">${up?`${up.getMonth()+1}월 ${up.getDate()}일 ${up.getHours()<12?"오전":"오후"} ${(up.getHours()%12)||12}:${String(up.getMinutes()).padStart(2,"0")} 업데이트 · 매일 아침 자동`:"매일 아침 7시에 자동으로 모아와요"}</div>
+    <div class="stick"><div class="chips">${NEWS_TAGS.map(t=>`<button class="chip ${newsTag===t?"on":""}" data-newstag="${t}">${t}</button>`).join("")}</div></div>
+    ${groups.map(g=>`<div class="nday">${g.lab}</div><div class="nlist">${g.items.map(n=>`<a class="nli" ${nLink(n)}><span class="tx"><div class="nt">${nTitle(n)}</div><div class="nm">${esc(n.src)} · ${newsAgo(n.ts)}</div></span>${nImg(n)}</a>`).join("")}</div>`).join("")
+      || `<div class="empty">${all.length?"이 주제의 기사가 아직 없어요":"아직 모아온 뉴스가 없어요<br><small>매일 아침 7시에 자동으로 들어와요</small>"}</div>`}`;
+}
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-newstag]"); if(!b) return; newsTag=b.dataset.newstag; render(); },true);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) loadNews(); });
+
 /* ---------- render ---------- */
 let noteCat="전체", noteQ="", cardCat="전체", review=null, sheetOpen=false, pendingRender=false, logDay=null;
 function render(){
   drawNav();
   const titles={home:"장제노트",notes:"Notes",logs:"Today",cards:"Cards",timer:"Timer"};
-  const subs={notes:"공부 노트",logs:"실습·견학 일지",cards:"학습",timer:"공부 타이머",todos:"체크리스트"};
+  const subs={news:"말 뉴스",notes:"공부 노트",logs:"실습·견학 일지",cards:"학습",timer:"공부 타이머",todos:"체크리스트"};
   $(".app").classList.toggle("home", tab==="home"); updStatus();
   $("#title").textContent = tab==="logs" ? "실습 일지" : (subs[tab]||"");
   $("#hsub").textContent = fmtLong(ymd());
   $("#modeSlot").innerHTML = modeBadge();
   const viewKey=tab+"|"+(tab==="cards"?studyMode+(review?"r":"")+(quiz?"q":""):"");
-  ({home:renderHome,notes:renderNotes,logs:renderLogs,cards:renderStudy,timer:renderTimer,todos:renderTodos})[tab]();
+  ({home:renderHome,notes:renderNotes,logs:renderLogs,cards:renderStudy,timer:renderTimer,todos:renderTodos,news:renderNews})[tab]();
   updateBadge(); updStatus(); afterRender(viewKey);
 }
 /* ---------- interactions ---------- */
@@ -795,6 +844,7 @@ function renderHome(){
     </div>
     <form class="searchbar" id="homeSearch">${svg("search",22).replace('<svg','<svg style="color:var(--sub);flex:0 0 auto"')}<input id="homeQ" placeholder="노트 검색" enterkeyhint="search"><button class="go" type="submit" aria-label="검색">${svg("arrow",18)}</button></form>
     ${(()=>{ const e=nextEvent(); return e?`<button class="dday" data-act="goSchedule"><span class="dn">${ddayOf(e.sort)}</span><span class="dt"><b>${esc(e.title)}${e.fixed?"":'<span class="est">예상</span>'}</b><span>${esc(e.preset?e.when.replace(" (예상)",""):e.when)}${e.place?" · "+esc(e.place):""}</span></span>${svg("arrow",18)}</button>`:""; })()}
+    ${newsHome()}
     ${t?`<button class="item dot" data-go="timer" style="margin-top:18px"><span class="bx dis">${svg("timer",16)}</span><span class="tx"><div class="t">공부 중 · ${esc(t.topic)}</div><div class="m">${t.start?"진행 중":"일시정지"} · 타이머로 이동</div></span><span class="pt"></span></button>`:""}
     ${backupDue()?`<button class="item dot" data-act="settings" style="margin-top:${t?0:18}px"><span class="bx dis">${svg("backup",16)}</span><span class="tx"><div class="t">백업할 때가 됐어요</div><div class="m">${ls.get("fn_lastBackup",null)?"마지막 백업 "+fmtDate(ls.get("fn_lastBackup")):"아직 백업한 적이 없어요"}</div></span><span class="pt"></span></button>`:""}
     <div class="sec"><h2>오늘</h2><button class="link" data-go="timer">기록 보기</button></div>
@@ -1588,7 +1638,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.29-11";
+const APP_VERSION="2026.10.29-12";
 let swReg=null;
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{swReg=r;}).catch(()=>{});
 async function checkUpdate(manual){

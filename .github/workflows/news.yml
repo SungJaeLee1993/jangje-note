@@ -1,0 +1,26 @@
+name: 말 뉴스 수집
+on:
+  schedule:
+    - cron: "0 22 * * *"   # 매일 오전 7시 (KST)
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: news
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pillow googlenewsdecoder
+      - run: python tools/fetch_news.py
+      - name: commit
+        run: |
+          git config user.name "news-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A news
+          git diff --cached --quiet && exit 0
+          git commit -m "뉴스 업데이트 $(TZ=Asia/Seoul date +%m/%d)"
+          git push
