@@ -647,20 +647,52 @@ async function shareVideo(id){
 /* ---------- backup ---------- */
 const blobToB64 = b => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=rej; r.readAsDataURL(b); });
 const b64ToBlob = (b64,mime) => { const bin=atob(b64); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return new Blob([u],{type:mime}); };
-async function exportBackup(withVideo){
-  toast("백업 파일 만드는 중…");
+async function buildBackup(withVideo){
   const all = await idbAll("media");
   const out = { app:"farrier-notes", version:1, exportedAt:new Date().toISOString(), data:{}, media:[] };
   for(const c of COLS) out.data[c]=S[c];
   for(const m of all){ if(m.type==="video" && !withVideo) continue; out.media.push({ id:m.id, type:m.type, mime:m.mime, b64: await blobToB64(mediaBlob(m)) }); }
-  const file = new File([JSON.stringify(out)], `장제노트-백업-${ymd()}.json`, { type:"application/json" });
-  ls.set("fn_lastBackup", ymd());
+  return new File([JSON.stringify(out)], `장제노트-백업-${ymd()}.json`, { type:"application/json" });
+}
+async function shareBackup(file){
   if(navigator.canShare?.({ files:[file] })){
-    try{ await navigator.share({ files:[file], title:"장제노트 백업" }); toast("백업 완료"); return; }
-    catch(e){ if(e.name==="AbortError") return; }
+    try{ await navigator.share({ files:[file], title:"장제노트 백업" }); ls.set("fn_lastBackup", ymd()); toast("백업 완료"); return true; }
+    catch(e){ if(e.name==="AbortError") return false; }
   }
   const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=file.name; document.body.appendChild(a); a.click(); a.remove();
-  toast("백업 파일을 저장했어요");
+  ls.set("fn_lastBackup", ymd()); toast("백업 파일을 저장했어요"); return true;
+}
+async function exportBackup(withVideo){ toast("백업 파일 만드는 중…"); return shareBackup(await buildBackup(withVideo)); }
+/* 한 달에 한 번: 저장 창 + GitHub 자동 업로드 */
+const daysSince = d => d ? Math.round((new Date(ymd()+"T00:00:00")-new Date(d+"T00:00:00"))/864e5) : 1e9;
+let monthlyFile=null;
+async function monthlyBackup(){
+  const n=COLS.reduce((a,c)=>a+S[c].length,0); if(n<3) return;
+  const gh=ls.get("fn_ghBackup",null);
+  if(gh?.token && gh?.repo && daysSince(gh.last)>=30) ghBackup(false);
+  if(daysSince(ls.get("fn_lastBackup",null))<30 || daysSince(ls.get("fn_backupAsked",null))<30 || sheetOpen) return;
+  ls.set("fn_backupAsked", ymd());
+  monthlyFile = await buildBackup(true);   // 미리 만들어 두고 버튼 한 번에 바로 공유
+  if(sheetOpen) return;
+  const last=ls.get("fn_lastBackup",null);
+  openSheet(`${head("백업할 때가 됐어요")}
+    <div style="font-size:15px;color:var(--sub2);line-height:1.6;margin:4px 2px 18px">${last?`마지막 백업이 ${fmtDate(last)}이에요.`:"아직 백업한 적이 없어요."}<br>'파일에 저장 → iCloud Drive'에 저장해 두면 폰을 바꿔도 기록이 남아요.<br><small style="color:var(--sub)">사진·영상 포함 · ${(monthlyFile.size/1048576).toFixed(1)}MB</small></div>
+    <button class="btn block" data-act="monthlySave">지금 저장</button>
+    <button class="btn ghost block" style="margin-top:8px" data-act="close">다음 달에</button>`);
+}
+async function ghBackup(manual){
+  const gh=ls.get("fn_ghBackup",null); if(!gh?.token||!gh?.repo){ if(manual) toast("저장소와 토큰을 먼저 입력해 주세요"); return false; }
+  try{
+    if(manual) toast("GitHub에 백업하는 중…");
+    const file=await buildBackup(false);
+    if(file.size>80*1048576) throw new Error("백업이 너무 커요 (80MB 초과)");
+    const b64=await blobToB64(file);
+    const name=`backups/${ymd()}-${Date.now().toString(36)}.json`;
+    const r=await fetch(`https://api.github.com/repos/${gh.repo}/contents/${name}`,{method:"PUT",headers:{Authorization:"Bearer "+gh.token,Accept:"application/vnd.github+json"},
+      body:JSON.stringify({message:"장제노트 자동 백업 "+ymd(),content:b64})});
+    if(!r.ok){ const j=await r.json().catch(()=>({})); throw new Error(r.status===401?"토큰이 맞지 않아요":r.status===404?"저장소를 찾을 수 없어요 (이름·권한 확인)":(j.message||("오류 "+r.status))); }
+    gh.last=ymd(); gh.err=null; ls.set("fn_ghBackup",gh); toast("GitHub 자동 백업 완료"); return true;
+  }catch(e){ gh.err=String(e.message||e); ls.set("fn_ghBackup",gh); if(manual) toast(/[가-힣]/.test(gh.err)?gh.err:"백업하지 못했어요 (인터넷 확인)"); return false; }
 }
 async function importBackup(file){
   try{
@@ -697,6 +729,13 @@ async function openSettings(){
       <button class="btn ghost block" style="margin-top:8px" data-act="restore">백업 불러오기</button>
     </div>
     <div class="card">
+      <b>자동 백업 (GitHub 비공개 저장소)</b>
+      <div style="font-size:14px;color:var(--sub);margin:6px 0 12px">한 달에 한 번 앱을 열 때 기록·사진을 자동으로 올려요. 영상은 빠져요.<br>${(()=>{const g=ls.get("fn_ghBackup",null); return g?.last?"마지막 자동 백업: "+fmtDate(g.last):"아직 자동 백업 전"; })()}${(()=>{const g=ls.get("fn_ghBackup",null); return g?.err?`<br><span style="color:var(--bad)">최근 실패: ${esc(g.err)}</span>`:""; })()}</div>
+      <input id="ghRepo" class="search" style="margin-bottom:8px" placeholder="저장소 (예: SungJaeLee1993/jangje-backup)" value="${esc(ls.get("fn_ghBackup",{}).repo||"")}" autocapitalize="off" autocorrect="off">
+      <input id="ghToken" class="search" type="password" style="margin-bottom:10px" placeholder="토큰 (github_pat_…)" value="${esc(ls.get("fn_ghBackup",{}).token||"")}" autocapitalize="off" autocorrect="off">
+      <button class="btn line block" data-act="ghSave">저장하고 지금 백업</button>
+    </div>
+    <div class="card">
       <b>알림</b>
       <div style="font-size:14px;color:var(--sub);margin:6px 0 12px">체크리스트에서 '아이폰 알림 받기'를 켜면 캘린더 일정으로 추가돼서 그 시간에 알림이 와요. 아래를 허용하면 오늘·지난 할 일 개수가 앱 아이콘 배지로 표시돼요.</div>
       <button class="btn line block" data-act="askNotif">${(window.Notification&&Notification.permission==="granted")?"✓ 배지 알림 허용됨":"앱 아이콘 배지 허용"}</button>
@@ -707,7 +746,7 @@ async function openSettings(){
 }
 
 /* ---------- stats ---------- */
-function backupDue(){ const n=COLS.reduce((a,c)=>a+S[c].length,0); if(n<5) return false; const l=ls.get("fn_lastBackup",null); return !l || l<=addDays(ymd(),-14); }
+function backupDue(){ const n=COLS.reduce((a,c)=>a+S[c].length,0); if(n<5) return false; const l=ls.get("fn_lastBackup",null); return !l || l<=addDays(ymd(),-30); }
 function minutesOn(day){ return S.sessions.filter(s=>s.date===day).reduce((a,s)=>a+(s.minutes||0),0); }
 function streak(){
   const days=new Set(S.sessions.map(s=>s.date).concat(S.logs.map(l=>l.date)));
@@ -867,7 +906,6 @@ function renderHome(){
     ${(()=>{ const e=nextEvent(); return e?`<button class="dday" data-act="goSchedule"><span class="dn">${ddayOf(e.sort)}</span><span class="dt"><b>${esc(e.title)}${e.fixed?"":'<span class="est">예상</span>'}</b><span>${esc(e.preset?e.when.replace(" (예상)",""):e.when)}${e.place?" · "+esc(e.place):""}</span></span>${svg("arrow",18)}</button>`:""; })()}
     ${newsHome()}
     ${t?`<button class="item dot" data-go="timer" style="margin-top:18px"><span class="bx dis">${svg("timer",16)}</span><span class="tx"><div class="t">공부 중 · ${esc(t.topic)}</div><div class="m">${t.start?"진행 중":"일시정지"} · 타이머로 이동</div></span><span class="pt"></span></button>`:""}
-    ${backupDue()?`<button class="item dot" data-act="settings" style="margin-top:${t?0:18}px"><span class="bx dis">${svg("backup",16)}</span><span class="tx"><div class="t">백업할 때가 됐어요</div><div class="m">${ls.get("fn_lastBackup",null)?"마지막 백업 "+fmtDate(ls.get("fn_lastBackup")):"아직 백업한 적이 없어요"}</div></span><span class="pt"></span></button>`:""}
     <div class="sec"><h2>오늘</h2><button class="link" data-go="timer">기록 보기</button></div>
     <div class="hscroll">
       <button class="tile dark" data-act="startReview">${waves(.12)}<span class="ic">${svg("cards",22)}</span><span class="tt">암기카드 복습</span><span class="dd">${due?`오늘 ${due}장이 기다리고 있어요`:S.cards.length?"오늘 복습 끝!":"카드를 추가해 보세요"}</span><span class="arrow">${svg("arrow",20)}</span></button>
@@ -1649,6 +1687,10 @@ document.addEventListener("click", async e=>{
     case "newNote": return editNote();
     case "newCard": return editCard();
     case "goTimer": closeSheet(); tab="timer"; ls.set("fn_tab",tab); render(); window.scrollTo(0,0); return;
+    case "monthlySave": { if(!monthlyFile) return; const ok=await shareBackup(monthlyFile); if(ok){ monthlyFile=null; closeSheet(); } return; }
+    case "ghSave": { const repo=$("#ghRepo").value.trim().replace(/^https?:\/\/github\.com\//,"").replace(/\/$/,""), token=$("#ghToken").value.trim();
+      const g=ls.get("fn_ghBackup",{}); ls.set("fn_ghBackup",{...g,repo,token}); if(!repo||!token) return toast("저장소와 토큰을 입력해 주세요");
+      if(await ghBackup(true)) openSettings(); return; }
     case "backup": return exportBackup(false);
     case "backupV": return exportBackup(true);
     case "restore": return $("#restoreIn").click();
@@ -1658,7 +1700,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.29-14";
+const APP_VERSION="2026.10.29-15";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
@@ -1784,6 +1826,7 @@ function showUpdateBar(v){
 function hideUpdBar(){ const b=$("#updBar"); if(!b) return; b.classList.remove("on"); setTimeout(()=>b.remove(),350); ls.set("fn_updTried",{v:newVer,t:Date.now()}); }
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden) checkUpdate(false); });
 setTimeout(()=>checkUpdate(false),1500);
+setTimeout(()=>monthlyBackup(),4000);
 init();
 </script>
 </body>
