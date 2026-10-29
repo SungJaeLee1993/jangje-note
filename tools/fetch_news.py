@@ -52,13 +52,15 @@ def rss(q):
 
 def norm(t): return re.sub(r"[^0-9a-zA-Z가-힣]", "", t)[:40]
 
+DEBUG = []
 def decode(gurl):
     try:
         from googlenewsdecoder import gnewsdecoder
         r = gnewsdecoder(gurl, interval=0.3)
         if r.get("status") and r.get("decoded_url"): return r["decoded_url"]
+        DEBUG.append("decode: " + str(r)[:300])
     except Exception as e:
-        print("decode fail", e)
+        DEBUG.append("decode exc: " + repr(e)[:300])
     return gurl
 
 OG = [r'<meta[^>]+property=["\']og:image(?::url)?["\'][^>]+content=["\']([^"\']+)',
@@ -107,6 +109,10 @@ def main():
             print("rss fail", q, e)
         time.sleep(1)
     print("new items:", len(fresh))
+    # 이전 실행에서 원문 주소를 못 푼 기사 재시도
+    retry = [i for i in by.values() if "news.google.com" in i.get("url", "") and not i.get("img")][:20]
+    for it in retry: fresh.append(it); it["gurl"] = it.pop("url")
+
     fresh.sort(key=lambda i: i["ts"], reverse=True)
     for n, it in enumerate(fresh):
         it["url"] = decode(it.pop("gurl"))
@@ -115,7 +121,7 @@ def main():
             u = og_image(it["url"])
             if u: it["img"] = save_thumb(u, it["id"])
         except Exception as e:
-            print("img fail", it["src"], e)
+            DEBUG.append("img: " + it["src"] + " " + repr(e)[:200])
         time.sleep(0.4)
     for it in by.values():
         if "gurl" in it: it["url"] = it.pop("gurl")
@@ -128,6 +134,7 @@ def main():
     json.dump({"updated": dt.datetime.now(dt.timezone.utc).isoformat(), "items": items},
               open(OUT, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     print("total:", len(items), "imgs:", len(keep))
+    open(os.path.join(ROOT, "news", "_debug.txt"), "w").write("\n".join(DEBUG[:30]))
 
 if __name__ == "__main__":
     main()
