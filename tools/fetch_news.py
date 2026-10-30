@@ -101,7 +101,11 @@ def toks(t):
     out=set()
     for w in re.findall(r"[가-힣A-Za-z0-9]+",t):
         w=JOSA.sub("",w) if len(w)>2 else w
-        if len(w)<2 or w in STOP or re.fullmatch(r"\d+(월|일|개|명|승|회|번|연승|경주)?",w): continue
+        m=re.fullmatch(r"(\d+)(월|일|개|명|승|회|번|연승|경주|억|만)?",w)
+        if m:
+            if m.group(2) in ("월","일") or len(m.group(1))>=2: out.add(m.group(1)+(m.group(2) if m.group(2) in ("월","일") else "#"))
+            continue
+        if len(w)<2 or w in STOP: continue
         out.add(w)
     return out
 DF={}
@@ -111,8 +115,8 @@ def bgr(x,y):
     return len(A&B)/max(1,min(len(A),len(B)))
 def match(a,b,ta="",tb=""):
     hit=[x for x in a for y in b if x==y or (len(x)>=2 and len(y)>=2 and (x.startswith(y) or y.startswith(x)) and min(len(x),len(y))>=2)]
-    hit=set(hit)
-    return len(hit)>=2 or any(len(h)>=3 for h in hit) or (any(DF.get(h,0)<=DFMAX for h in hit) and bgr(ta,tb)>=0.2)
+    hit=set(hit); word=[h for h in hit if not h[0].isdigit()]   # 숫자·날짜는 다른 단어와 함께일 때만
+    return (len(hit)>=2 and (word or any(h.endswith("#") for h in hit))) or any(len(h)>=3 for h in word) or (any(DF.get(h,0)<=DFMAX for h in word) and bgr(ta,tb)>=0.15)
 DFMAX=8
 def dedupe(items,pool=None):
     global DFMAX
