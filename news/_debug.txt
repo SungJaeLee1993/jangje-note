@@ -1,1 +1,2 @@
-img: Queen 이코노미퀸 URLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1010)'))
+img: 뉴스1 <HTTPError 403: 'Forbidden'>
+img: 뉴스1 <HTTPError 403: 'Forbidden'>
