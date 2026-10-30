@@ -415,6 +415,15 @@ nav .plus:active{transform:scale(.93)}
 .gbtn{display:block;width:100%;background:var(--primary);color:#fff;border-radius:18px;padding:16px;font-size:16px;font-weight:700;letter-spacing:.08em;font-family:"Montserrat","Apple SD Gothic Neo",sans-serif}
 .gdone{position:absolute;left:24px;right:24px;width:auto;bottom:calc(var(--safe-b) + 28px);letter-spacing:0}
 @keyframes gpop{from{transform:scale(.9);opacity:0}}
+
+/* tip */
+.tip{display:block;width:100%;text-align:left;background:var(--card);border-radius:20px;padding:16px 18px;margin-top:12px;box-shadow:var(--shadow-s)}
+.tip .th{display:flex;justify-content:space-between;align-items:center}
+.tip .tg{font-size:12px;font-weight:700;border-radius:99px;padding:4px 10px}
+.tip .tg.j{background:var(--primary);color:#fff}.tip .tg.s{background:#EEF2F9;color:#3D5A8A}.tip .tg.l{background:#E7F3EA;color:#2F7A45}.tip .tg.h{background:#FBEAEA;color:#B23A3A}
+.tip .tn{font-size:13px;color:var(--sub);font-variant-numeric:tabular-nums}
+.tip .tt{font-size:16px;font-weight:600;line-height:1.5;margin-top:10px;letter-spacing:-.01em}
+.tip.swap .tt,.tip.swap .tg{animation:fadein .3s ease}
 </style>
 </head>
 <body>
@@ -801,6 +810,13 @@ let modeInfo={ text:"불러오는 중…", warn:false };
 const modeBadge = () => modeInfo.hide ? "" : `<button class="mode ${modeInfo.warn?"warn":""}" data-act="settings">${esc(modeInfo.text)}</button>`;
 
 
+
+/* ---------- 오늘의 팁 ---------- */
+const TIPS=[["장제", "제벽은 신경이 없는 각질이라, 못이 제자리에 박히면 말은 아파하지 않아요."], ["말 상식", "말은 발가락 하나로 서는 동물이고, 발굽은 가운데 발가락(제3지)이 발달한 거예요."], ["장제", "백선은 제벽과 제저가 만나는 경계선이고, 편자 못을 박는 위치의 기준이에요."], ["좋아해요", "무리와 함께 있는 걸 좋아해요. 곁에 다른 말이 있으면 안정감을 느껴요."], ["장제", "못은 백선 바깥쪽 제벽에 박아야 해요. 안쪽으로 들어가면 민감한 조직을 찔러 파행이 생길 수 있어요."], ["싫어해요", "뒤에서 갑자기 다가가는 걸 싫어해요. 말 바로 뒤에 서면 발에 차일 수 있어요."], ["장제", "제벽은 발굽 위쪽 테두리인 관대에서 자라 내려와요."], ["말 상식", "다리 안쪽의 밤눈(chestnut)과 뒤쪽의 거모(ergot)는 퇴화한 흔적 기관으로 여겨져요."], ["장제", "제벽은 한 달에 1cm 안팎 자라요."], ["말 상식", "갓 태어난 망아지 발굽은 무른 덮개로 싸여 있어 어미 배 속과 출산 때 다치지 않게 보호해요."], ["장제", "발굽 앞쪽이 관대에서 바닥까지 완전히 새로 자라는 데 9~12개월쯤 걸려요."], ["좋아해요", "목과 기갑 쪽을 긁어주는 걸 좋아해요. 말끼리도 서로 이 부위를 이로 긁어줘요."], ["장제", "어린 말일수록 발굽이 빨리 자라요."], ["싫어해요", "귀를 뒤로 납작하게 젖히면 경계하거나 불쾌하다는 신호예요."], ["장제", "겨울에는 대체로 발굽 성장이 느려져요."], ["말 상식", "말은 보통 왼쪽에서 다뤄요."], ["장제", "제차는 V자 모양의 탄력 있는 조직으로, 충격 흡수와 미끄럼 방지를 도와요."], ["말 상식", "말의 시야는 거의 360도지만 바로 앞과 바로 뒤는 사각지대예요."], ["장제", "제차 양옆 홈(측구)에는 흙과 돌이 잘 끼어서 굽파기 때 꼭 청소해요."], ["좋아해요", "풀 뜯는 걸 좋아해요. 자연 상태의 말은 하루의 절반 이상을 먹는 데 써요."], ["장제", "건강한 제저는 살짝 오목해요. 평평하거나 볼록하면 문제 신호일 수 있어요."], ["싫어해요", "혼자 남겨지는 걸 싫어해요. 무리 동물이라 혼자 두면 스트레스를 받을 수 있어요."], ["장제", "발굽 안에는 발가락 끝뼈인 제골이 들어 있어요."], ["말 상식", "말은 먹잇감 동물이라 위협을 느끼면 먼저 도망치려 해요."], ["장제", "제엽은 제벽과 제골을 단단히 붙잡아 주는 조직이에요."], ["말 상식", "성마의 정상 체온은 약 37.5~38.5°C예요."], ["장제", "체중이 실리면 발굽이 살짝 벌어지면서 다리의 혈액을 위로 밀어 올리는 데 도움을 줘요."], ["좋아해요", "흙이나 모래에 구르는 걸 좋아해요. 가려운 곳을 긁고 털을 정돈하는 행동이에요."], ["장제", "앞발이 체중의 약 60%를 지탱해요."], ["싫어해요", "사료가 갑자기 바뀌는 걸 싫어해요. 산통 위험이 있어서 1~2주에 걸쳐 천천히 바꿔요."], ["장제", "앞발굽은 대체로 둥글고, 뒷발굽은 앞쪽이 더 뾰족한 편이에요."], ["말 상식", "쉬고 있는 성마의 심박수는 분당 약 28~44회예요."], ["장제", "옆에서 봤을 때 계부와 발굽 앞면이 일직선인 게 이상적인 발굽·계부 축이에요."], ["말 상식", "쉬고 있는 성마의 호흡수는 분당 약 8~16회예요."], ["장제", "발굽·계부 축이 꺾여 있으면 힘줄과 관절에 부담이 커져요."], ["좋아해요", "정해진 시간에 먹고 움직이는 규칙적인 일과를 좋아해요."], ["장제", "제종이 낮고 앞으로 쏠린 발굽을 저제종(underrun heel)이라 해요."], ["싫어해요", "갑작스러운 큰 소리와 빠른 움직임에 잘 놀라요."], ["장제", "발굽 균열은 위치에 따라 제첨 균열, 측벽 균열, 제종 균열로 나뉘어요."], ["말 상식", "말은 코로만 숨을 쉬어요."], ["장제", "발굽이 너무 건조하면 갈라지기 쉽고, 너무 오래 젖어 있으면 물러져요."], ["말 상식", "말은 구조상 구토를 거의 하지 못해요."], ["장제", "흰 발굽이 검은 발굽보다 약하다는 말은 연구에서 뚜렷한 근거가 확인되지 않았어요."], ["좋아해요", "단맛을 좋아해요. 다만 간식은 당분이 많으니 조금만 줘요."], ["장제", "제차부란은 제차에 생기는 세균 감염으로, 검은 분비물과 고약한 냄새가 특징이에요."], ["싫어해요", "바람에 펄럭이는 비닐이나 천을 무서워하는 경우가 많아요."], ["장제", "젖은 깔짚이나 분뇨 위에 오래 서 있으면 제차부란 위험이 커져요."], ["말 상식", "말의 위는 덩치에 비해 작아서 조금씩 자주 먹는 게 맞아요."], ["장제", "제엽염은 제엽에 염증이 생기는 병으로, 제골이 회전하거나 가라앉을 수 있는 응급 상황이에요."], ["말 상식", "커다란 맹장에서 섬유질을 발효시켜 영양을 얻어요."], ["장제", "제엽염에 걸린 말은 앞발 통증을 줄이려고 체중을 뒤로 싣고 앞발을 앞으로 내미는 자세를 자주 취해요."], ["장제", "곡물 과식, 대사 질환, 심한 전신 염증 등이 제엽염의 원인이 될 수 있어요."], ["싫어해요", "파리 같은 벌레를 싫어해요. 꼬리를 휘두르고 피부를 떨어서 쫓아내요."], ["장제", "갑자기 심하게 절면 발굽 농양이 흔한 원인 중 하나예요."], ["말 상식", "하루에 체중의 약 1.5~2.5%를 사료(수분을 뺀 무게 기준)로 먹어요."], ["장제", "제저를 다치면 붉은 멍 자국으로 보이기도 해요."], ["말 상식", "성마는 하루에 물을 20~50L 정도 마셔요. 날씨와 운동량에 따라 달라요."], ["장제", "발굽 검사기(hoof tester)로 눌러서 통증 부위를 찾아요."], ["장제", "주상골 증후군은 앞발 뒤쪽 통증의 흔한 원인이에요."], ["싫어해요", "겨울에 너무 차가운 물은 덜 마셔요. 물을 덜 마시면 산통 위험이 커져요."], ["장제", "발굽 건강 보조제로 쓰는 비오틴은 효과를 보려면 발굽이 자라는 만큼, 즉 수개월이 걸려요."], ["말 상식", "산통은 말의 복통을 통틀어 부르는 말이고, 말의 주요 사망 원인 중 하나예요."], ["장제", "\"발굽이 없으면 말도 없다(No hoof, no horse)\"는 장제의 대표 격언이에요."], ["말 상식", "바닥에 구르기, 옆구리 돌아보기, 배 차기, 식욕 저하가 산통의 대표 증상이에요."], ["장제", "장제 주기는 보통 4~8주이고, 6주 전후가 가장 흔해요."], ["장제", "편자를 신긴 말은 발굽이 닳지 않아서 정기적으로 깎아줘야 해요."], ["싫어해요", "좁고 어두운 곳에 들어가는 걸 꺼려요. 트레일러에 잘 안 타려는 이유 중 하나예요."], ["장제", "편자를 안 신긴 맨발 말도 4~8주마다 삭제가 필요해요."], ["말 상식", "말 이빨은 평생 조금씩 밀려 나와서 정기적으로 치과 검진(줄질)을 해요."], ["장제", "장제 전에 걷기와 속보를 보면서 보행 상태를 먼저 확인해요."], ["말 상식", "말은 땀으로 열을 식히고, 땀으로 전해질도 많이 잃어요."], ["장제", "장제가 끝난 뒤에도 다시 걸려 보며 보행을 확인해요."], ["장제", "기본 순서는 편자 제거 → 삭제 → 편자 맞추기 → 못 박기 → 클린치 마무리예요."], ["장제", "편자를 뗄 때는 클린치를 먼저 펴거나 잘라야 제벽이 덜 상해요."], ["말 상식", "말은 다리 관절을 고정하는 구조 덕분에 서서 잘 수 있어요."], ["장제", "클린치는 제벽 밖으로 나온 못 끝을 구부려 고정한 부분이에요."], ["말 상식", "깊은 잠(렘수면)은 누워야만 잘 수 있어요."], ["장제", "니퍼는 제벽을 자르는 도구예요."], ["장제", "라스프(줄)는 발굽 바닥을 평평하게 다듬는 도구예요."], ["장제", "제도(hoof knife)로 제저와 제차를 다듬어요."], ["말 상식", "임신 기간은 약 11개월(340일 안팎)이에요."], ["장제", "제저를 너무 많이 깎으면 얇아져서 멍과 통증이 생기기 쉬워요."], ["말 상식", "망아지는 태어나서 보통 1~2시간 안에 일어서요."], ["장제", "발굽 안쪽과 바깥쪽의 높이 균형을 맞추는 게 중요해요."], ["장제", "편자 못은 한 편자에 보통 6~8개 박아요."], ["장제", "못은 발굽의 가장 넓은 부분보다 뒤쪽(제종 쪽)에는 박지 않아요. 발굽이 벌어질 공간을 남기기 위해서예요."], ["말 상식", "말 키는 기갑(목과 등이 만나는 높은 부분)까지 재고, 1핸드는 4인치(10.16cm)예요."], ["장제", "못 끝의 경사면을 안쪽으로 향하게 박아야 못이 바깥으로 빠져나와요."], ["말 상식", "제주마는 우리나라 천연기념물로 지정된 토종 말이에요."], ["장제", "못 끝은 제벽 높이의 3분의 1쯤에서 나오게 하는 게 일반적이에요."], ["장제", "편자는 제종 쪽을 발굽보다 살짝 여유 있게 맞춰요. 발굽이 벌어지는 걸 고려해서예요."], ["장제", "열장제는 달군 편자를 발굽에 잠깐 대서 닿는 면을 확인하고 밀착시키는 방법이에요."], ["장제", "열장제 때 연기가 나도 각질에는 신경이 없어 아프지 않아요. 단, 너무 오래 대면 열이 안쪽까지 전해질 수 있어요."], ["장제", "냉장제는 편자를 달구지 않고 모루에서 망치로 모양을 맞추는 방법이에요."], ["장제", "가스 화로로 편자를 달구고, 모루 위에서 모양을 잡아요."], ["장제", "편자 클립은 편자가 밀리지 않게 발굽을 잡아주는 작은 날개예요."], ["장제", "앞발은 앞쪽에 클립 1개, 뒷발은 양옆에 클립 2개를 많이 써요."], ["장제", "편자 바닥의 홈(fullering)은 못대가리를 감싸 덜 닳게 하고 접지력도 높여요."], ["장제", "일반 편자는 강철이 가장 흔하고, 경주마는 가벼운 알루미늄 편자를 많이 써요."], ["장제", "바 편자는 편자 뒤쪽을 막대로 이어서 받쳐주는 면을 넓힌 편자예요."], ["장제", "에그바 편자는 뒤쪽이 달걀 모양으로 이어져 제종을 받쳐줘요."], ["장제", "하트바 편자는 제차를 눌러 제골을 받쳐주는 데 써요."], ["장제", "교정 장제는 수의사와 상의해서 해요."], ["장제", "장제용 앞치마는 장제사의 다리를 보호해요."], ["장제", "장제사는 말 발굽을 자기 무릎 사이에 끼우고 작업해요."], ["장제", "말 뒤로 지나가야 하면 몸에 손을 대고 말을 걸어서 지나간다는 걸 알려요."], ["장제", "다리를 들 때는 어깨 옆에 서서 다리 뒤쪽을 쓸어내리며 신호를 줘요."], ["장제", "굽파기는 제종에서 제첨 쪽으로 긁어요. 제차를 찌르지 않기 위해서예요."], ["장제", "굽은 매일, 특히 운동 전후로 파주는 게 좋아요."], ["장제", "편자가 빠졌을 때는 남은 못에 발이 찔리지 않게 조심해요."], ["장제", "장제 전후로 다리에 붓기나 열감이 있는지 확인해요. 힘줄 손상 신호일 수 있어요."]];
+const TIPCLS={"장제":"j","말 상식":"s","좋아해요":"l","싫어해요":"h"};
+function tipIdx(){ const day=Math.floor(new Date(ymd()+"T00:00:00").getTime()/864e5); const o=ls.get("fn_tipOff",{d:null,n:0}); return ((day+(o.d===ymd()?o.n:0))%TIPS.length+TIPS.length)%TIPS.length; }
+function tipCard(swap){ const i=tipIdx(), [c,t]=TIPS[i]; return `<button class="tip${swap?" swap":""}" data-act="nextTip"><div class="th"><span class="tg ${TIPCLS[c]}">${c}</span><span class="tn">${i+1} / ${TIPS.length} ›</span></div><div class="tt">${esc(t)}</div></button>`; }
+
 /* ---------- 말 뉴스 ---------- */
 let NEWS=ls.get("fn_news",{updated:null,items:[]}), newsTag="전체";
 const NEWS_TAGS=["전체","장제","마사회","승마","경마","말산업"];
@@ -904,6 +920,7 @@ function renderHome(){
     </div>
     <form class="searchbar" id="homeSearch">${svg("search",22).replace('<svg','<svg style="color:var(--sub);flex:0 0 auto"')}<input id="homeQ" placeholder="노트 검색" enterkeyhint="search"><button class="go" type="submit" aria-label="검색">${svg("arrow",18)}</button></form>
     ${(()=>{ const e=nextEvent(); return e?`<button class="dday" data-act="goSchedule"><span class="dn">${ddayOf(e.sort)}</span><span class="dt"><b>${esc(e.title)}${e.fixed?"":'<span class="est">예상</span>'}</b><span>${esc(e.preset?e.when.replace(" (예상)",""):e.when)}${e.place?" · "+esc(e.place):""}</span></span>${svg("arrow",18)}</button>`:""; })()}
+    ${tipCard()}
     ${newsHome()}
     ${t?`<button class="item dot" data-go="timer" style="margin-top:18px"><span class="bx dis">${svg("timer",16)}</span><span class="tx"><div class="t">공부 중 · ${esc(t.topic)}</div><div class="m">${t.start?"진행 중":"일시정지"} · 타이머로 이동</div></span><span class="pt"></span></button>`:""}
     <div class="sec"><h2>오늘</h2><button class="link" data-go="timer">기록 보기</button></div>
@@ -1680,6 +1697,7 @@ document.addEventListener("click", async e=>{
     case "shareVid": return shareVideo(failVid);
     case "doUpdate": { hideUpdBar(); openGame(true); return; }
     case "playGame": closeSheet(); openGame(false); return;
+    case "nextTip": { const o=ls.get("fn_tipOff",{d:null,n:0}); ls.set("fn_tipOff",{d:ymd(),n:(o.d===ymd()?o.n:0)+1}); buzz(6); el.outerHTML=tipCard(true); return; }
     case "hideUpd": return hideUpdBar();
     case "checkUpdate": return checkUpdate(true);
     case "quickAdd": return quickAdd();
@@ -1700,7 +1718,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.29-15";
+const APP_VERSION="2026.10.30-1";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
