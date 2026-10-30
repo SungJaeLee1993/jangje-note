@@ -1,2 +1,0 @@
-img: 뉴스1 <HTTPError 403: 'Forbidden'>
-img: 뉴스1 <HTTPError 403: 'Forbidden'>
