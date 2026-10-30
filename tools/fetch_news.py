@@ -93,12 +93,39 @@ IMG_N = 15
 
 def rank(it): return min(PRIORITY.index(t) for t in it["tags"])
 
-def grams(t):
-    t = norm(t); return {t[i:i + 2] for i in range(len(t) - 1)}
-
-def similar(a, b):
-    A, B = grams(a), grams(b)
-    return bool(A and B) and len(A & B) / min(len(A), len(B)) > 0.5
+# ---- 같은 사건 중복 판별 (핵심 단어 기준) ----
+STOP=set("한국마사회 마사회 렛츠런파크 렛츠런 말산업 말 馬 경마 승마 개최 모집 참가자 시행 서울 부산 부산경남 부경 제주 지사 본부 지원 행사 체험 확대 국내 한국 특별한 하루 위한 나선다 선사 대상 생중계 안방서 즐긴다 까지 부터 올해 최고 세계적 세계 함께 하는 통해 위해 진행 운영 실시 성료 마련 기념 관련 대회 경주 이어 등 및 첫 새 년 월 일".split())
+JOSA=re.compile(r"(으로|에서|까지|부터|에게|과|와|은|는|이|가|을|를|의|에|로|도|만|서)$")
+def toks(t):
+    t=re.sub(r"[\[\(][^\]\)]*[\]\)]"," ",t)
+    out=set()
+    for w in re.findall(r"[가-힣A-Za-z0-9]+",t):
+        w=JOSA.sub("",w) if len(w)>2 else w
+        if len(w)<2 or w in STOP or re.fullmatch(r"\d+(월|일|개|명|승|회|번|연승|경주)?",w): continue
+        out.add(w)
+    return out
+DF={}
+def bgr(x,y):
+    f=lambda t:{t[i:i+2] for i in range(len(t)-1)}
+    A,B=f(re.sub(r"[^가-힣A-Za-z0-9]","",x)),f(re.sub(r"[^가-힣A-Za-z0-9]","",y))
+    return len(A&B)/max(1,min(len(A),len(B)))
+def match(a,b,ta="",tb=""):
+    hit=[x for x in a for y in b if x==y or (len(x)>=2 and len(y)>=2 and (x.startswith(y) or y.startswith(x)) and min(len(x),len(y))>=2)]
+    hit=set(hit)
+    return len(hit)>=2 or any(len(h)>=3 for h in hit) or (any(DF.get(h,0)<=DFMAX for h in hit) and bgr(ta,tb)>=0.2)
+DFMAX=8
+def dedupe(items,pool=None):
+    global DFMAX
+    DF.clear(); P=pool or items
+    for x in P:
+        for w in toks(x["title"]): DF[w]=DF.get(w,0)+1
+    DFMAX=max(8,len(P)//20)
+    kept=[];ks=[]
+    for it in items:
+        k=toks(it["title"])
+        if any(match(k,o,it["title"],ot) for o,ot in ks): it["_dup"]=True; continue
+        kept.append(it); ks.append((k,it["title"]))
+    return kept
 
 def main():
     os.makedirs(IMG, exist_ok=True)
@@ -122,11 +149,7 @@ def main():
     pool = [i for i in cands if age(i) <= dt.timedelta(days=3)]
     if len(pool) < PICK: pool = cands
     pool.sort(key=lambda i: (rank(i), -dt.datetime.fromisoformat(i["ts"]).timestamp()))
-    picked = []
-    for it in pool:
-        if any(similar(it["title"], p["title"]) for p in picked): continue
-        picked.append(it)
-        if len(picked) == PICK: break
+    picked = dedupe(pool, cands)[:PICK]
     print("candidates:", len(cands), "picked:", [(p["tags"], p["title"][:20]) for p in picked])
     for n, it in enumerate(picked):
         prev = old.get(it["id"])
