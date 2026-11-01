@@ -430,6 +430,7 @@ nav .plus:active{transform:scale(.93)}
 .recrow{display:flex;align-items:center;gap:10px}
 .recdot{width:12px;height:12px;border-radius:50%;background:#D04545;animation:blink 1s ease-in-out infinite;flex:0 0 auto}
 .recrow b{font-variant-numeric:tabular-nums;font-size:20px}
+.recst{font-size:12.5px;color:var(--sub);margin-left:4px}.reclive{font-size:13.5px;color:var(--sub2);min-height:20px;margin-top:8px;line-height:1.5}
 .rechint{font-size:12.5px;color:var(--sub);line-height:1.5;margin-top:8px}
 .raud{display:flex;align-items:center;gap:8px;margin-top:10px}
 .raud audio{flex:1;min-width:0;height:40px}
@@ -1481,14 +1482,48 @@ const recMime = () => { for(const t of ["audio/mp4","audio/webm;codecs=opus","au
 function silentWav(){ const sr=8000,n=sr, b=new ArrayBuffer(44+n), v=new DataView(b); const w=(o,t)=>{ for(let i=0;i<t.length;i++) v.setUint8(o+i,t.charCodeAt(i)); };
   w(0,"RIFF"); v.setUint32(4,36+n,true); w(8,"WAVE"); w(12,"fmt "); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,sr,true); v.setUint32(28,sr,true); v.setUint16(32,1,true); v.setUint16(34,8,true); w(36,"data"); v.setUint32(40,n,true); new Uint8Array(b,44).fill(128);
   return URL.createObjectURL(new Blob([b],{type:"audio/wav"})); }
+const SRC = window.SpeechRecognition || window.webkitSpeechRecognition;
 function drawRec(){
   const el=$("#recBox"); if(!el) return;
   const items=draftAudios.map((a,i)=>`<div class="raud"><audio controls preload="metadata" src="${esc(URLS[a.mediaId]||"")}"></audio><button class="x" data-act="rmAud" data-idx="${i}" aria-label="삭제">✕</button></div>`).join("");
-  if(REC){ el.innerHTML=`<div class="recrow"><i class="recdot"></i><b id="recT">${fmtT((Date.now()-REC.t0)/1000)}</b><span style="flex:1"></span><button class="btn block" style="width:auto;padding:12px 22px" data-act="recStop">■ 정지</button></div>
-    <div class="rechint">화면을 켜 둔 채로 두세요. 화면이 꺼지거나 다른 앱으로 가면 녹음이 멈출 수 있어요.</div>${items}`; return; }
+  if(REC){
+    const dict = REC.dict ? (REC.dictOff ? "받아쓰기 꺼짐" : "받아쓰기 켜짐") : "받아쓰기 안 씀";
+    el.innerHTML=`<div class="recrow"><i class="recdot"></i><b id="recT">${fmtT((Date.now()-REC.t0)/1000)}</b><span class="recst" id="recSt">${dict}</span><span style="flex:1"></span><button class="btn block" style="width:auto;padding:12px 22px" data-act="recStop">■ 정지</button></div>
+    <div class="reclive" id="recLive"></div>
+    <div class="rechint">녹음하는 동안 화면이 꺼지지 않게 유지해요. 다른 앱으로 나가거나 전화가 오면 녹음이 멈출 수 있어요.</div>${items}`; return; }
   el.innerHTML=`<button class="btn line block" data-act="recStart">● 녹음 시작</button>
+    ${SRC?`<label class="recopt"><input type="checkbox" id="recDict" ${ls.get("fn_recDict",true)?"checked":""}> 실시간 받아쓰기 (말한 내용이 전사문 칸에 쌓여요)</label>`:`<div class="recopt">이 기기에서는 실시간 받아쓰기를 쓸 수 없어요</div>`}
     <label class="recopt"><input type="checkbox" id="recSil" ${ls.get("fn_recSil",false)?"checked":""}> 화면이 꺼져도 이어가기 시도 (실험)</label>${items}`;
   const c=$("#recSil"); if(c) c.onchange=()=>ls.set("fn_recSil",c.checked);
+  const d=$("#recDict"); if(d) d.onchange=()=>ls.set("fn_recDict",d.checked);
+}
+/* 화면 켜짐 유지: Wake Lock → 안 되면 숨은 영상 반복 재생 */
+const NOSLEEP_MP4="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAANzbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAA+gAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAp10cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAPoAAAQAAABAAAAAAIVbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAAAoAAAAKABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABwG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAYBzdGJsAAAAvHN0c2QAAAAAAAAAAQAAAKxhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2MC4zMS4xMDIgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAAMmF2Y0MBZAAK/+EAF2dkAAqs2V7ARAAAAwAEAAADACg8SJZYAQAEaO+Py/34+AAAAAAQcGFzcAAAAAEAAAABAAAAFGJ0cnQAAAAAAAAXsAAAF7AAAAAYc3R0cwAAAAAAAAABAAAABQAACAAAAAAUc3RzcwAAAAAAAAABAAAAAQAAADhjdHRzAAAAAAAAAAUAAAABAAAQAAAAAAEAACgAAAAAAQAAEAAAAAABAAAAAAAAAAEAAAgAAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAAFAAAAAQAAAChzdHN6AAAAAAAAAAAAAAAFAAACxgAAAAwAAAAMAAAADAAAAAwAAAAUc3RjbwAAAAAAAAABAAADowAAAGJ1ZHRhAAAAWm1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNjAuMTYuMTAwAAAACGZyZWUAAAL+bWRhdAAAAqwGBf//qNxF6b3m2Ui3lizYINkj7u94MjY0IC0gY29yZSAxNjQgcjMxMDggMzFlMTlmOSAtIEguMjY0L01QRUctNCBBVkMgY29kZWMgLSBDb3B5bGVmdCAyMDAzLTIwMjMgLSBodHRwOi8vd3d3LnZpZGVvbGFuLm9yZy94MjY0Lmh0bWwgLSBvcHRpb25zOiBjYWJhYz0xIHJlZj0xIGRlYmxvY2s9MTowOjAgYW5hbHlzZT0weDM6MHgxMTMgbWU9aGV4IHN1Ym1lPTIgcHN5PTEgcHN5X3JkPTEuMDA6MC4wMCBtaXhlZF9yZWY9MCBtZV9yYW5nZT0xNiBjaHJvbWFfbWU9MSB0cmVsbGlzPTAgOHg4ZGN0PTEgY3FtPTAgZGVhZHpvbmU9MjEsMTEgZmFzdF9wc2tpcD0xIGNocm9tYV9xcF9vZmZzZXQ9MCB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTEga2V5aW50PTI1MCBrZXlpbnRfbWluPTUgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD0xMCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAASZYiEABL/5P8F4P70O193s/+BAAAACEGaJBiH//7gAAAACEGeQkIIf6uBAAAACAGeYUQ//7OAAAAACAGeY0Q//7OB";
+async function keepAwake(R){
+  try{ if(navigator.wakeLock){ R.lock=await navigator.wakeLock.request("screen"); R.lock.addEventListener?.("release",()=>{ if(REC===R && !document.hidden) setTimeout(()=>keepAwake(R),300); }); R.awake="lock"; return; } }catch(e){}
+  try{ if(!R.nv){ const v=document.createElement("video"); v.src=NOSLEEP_MP4; v.muted=true; v.loop=true; v.playsInline=true; v.setAttribute("playsinline",""); v.setAttribute("muted",""); v.style.cssText="position:fixed;width:1px;height:1px;opacity:.01;pointer-events:none;left:0;top:0"; document.body.appendChild(v); R.nv=v; }
+    await R.nv.play(); R.awake="video"; }catch(e){ R.awake=null; }
+}
+function releaseAwake(R){ try{ R.lock?.release(); }catch(e){} try{ R.nv?.pause(); R.nv?.remove(); }catch(e){} }
+/* 실시간 받아쓰기: 끊기면 자동으로 다시 시작 (1시간 유지용) */
+function dictAppend(R,text){
+  text=(text||"").trim(); if(!text) return;
+  const ta=$("#lTranscript"); if(!ta) return;
+  const sec=(Date.now()-R.t0)/1000;
+  let pre=""; if(!R.lastStamp || sec-R.lastStamp>=60){ pre=`${ta.value?"\n\n":""}[${fmtT(sec)}] `; R.lastStamp=sec; } else pre=ta.value&&!/\s$/.test(ta.value)?" ":"";
+  ta.value+=pre+text; ta.scrollTop=ta.scrollHeight; sheetDirty=true; R.dictChars=(R.dictChars||0)+text.length;
+}
+function dictStart(R){
+  if(!SRC || !ls.get("fn_recDict",true)){ R.dict=false; return; }
+  R.dict=true; R.dictRestarts=0;
+  const rec=new SRC(); R.sr=rec; rec.lang="ko-KR"; rec.continuous=true; rec.interimResults=true;
+  rec.onresult=e=>{ let interim=""; for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) dictAppend(R,r[0].transcript); else interim+=r[0].transcript; }
+    const lv=$("#recLive"); if(lv) lv.textContent=interim?("… "+interim):""; R.heard=Date.now(); };
+  rec.onerror=e=>{ R.dictErr=e.error;
+    if(e.error==="not-allowed" || e.error==="service-not-allowed" || e.error==="language-not-supported"){ R.dictOff=true; const st=$("#recSt"); if(st) st.textContent="받아쓰기 꺼짐"; toast("실시간 받아쓰기를 쓸 수 없어요 · 녹음은 계속돼요"); } };
+  rec.onend=()=>{ if(REC!==R || R.dictOff) return; R.dictRestarts++;
+    setTimeout(()=>{ if(REC!==R || R.dictOff) return; try{ rec.start(); }catch(e){ if(R.dictRestarts>200) R.dictOff=true; } }, R.dictErr==="no-speech"?100:400); };
+  try{ rec.start(); }catch(e){ R.dictOff=true; }
 }
 async function recStart(){
   if(REC) return;
@@ -1500,7 +1535,8 @@ async function recStart(){
   const R={mr,stream,chunks:[],t0:Date.now(),last:Date.now(),mime:mr.mimeType||mime||"audio/mp4"}; REC=R;
   mr.ondataavailable=e=>{ if(e.data && e.data.size){ R.chunks.push(e.data); R.last=Date.now(); } };
   mr.start(1000);
-  try{ R.lock=await navigator.wakeLock?.request("screen"); }catch(e){}
+  await keepAwake(R);
+  dictStart(R);
   if(ls.get("fn_recSil",false)){ try{ const a=new Audio(silentWav()); a.loop=true; a.setAttribute("playsinline",""); await a.play(); R.sil=a; }catch(e){} }
   R.tick=setInterval(()=>{ const t=$("#recT"); if(t) t.textContent=fmtT((Date.now()-R.t0)/1000); },500);
   sheetDirty=true; buzz(10); drawRec();
@@ -1508,7 +1544,7 @@ async function recStart(){
 function recStop(){
   return new Promise(res=>{
     const R=REC; if(!R) return res(); REC=null;
-    clearInterval(R.tick); try{ R.lock?.release(); }catch(e){} try{ R.sil?.pause(); }catch(e){}
+    clearInterval(R.tick); R.dictOff=true; try{ R.sr?.stop(); }catch(e){} releaseAwake(R); try{ R.sil?.pause(); }catch(e){}
     let done=false;
     const fin=async()=>{ if(done) return; done=true;
       R.stream.getTracks().forEach(t=>t.stop());
@@ -1528,7 +1564,8 @@ function recStop(){
 document.addEventListener("visibilitychange",async()=>{
   if(!REC) return;
   if(document.hidden) return;
-  try{ if(!REC.lock || REC.lock.released) REC.lock=await navigator.wakeLock?.request("screen"); }catch(e){}
+  await keepAwake(REC);
+  if(REC.dict && !REC.dictOff){ try{ REC.sr.start(); }catch(e){} }
   if(Date.now()-REC.last>4000) toast("화면을 벗어난 동안 녹음이 멈췄을 수 있어요");
 });
 async function copyPrompt(){
@@ -1825,7 +1862,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.01-1";
+const APP_VERSION="2026.11.02-1";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
