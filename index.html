@@ -1949,7 +1949,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.02-3";
+const APP_VERSION="2026.11.02-4";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
@@ -2067,10 +2067,10 @@ function showUpdateBar(v){
   const d=document.createElement("div"); d.id="updBar"; d.className="updbar";
   d.innerHTML=`<span class="utx"><b>새 버전이 있어요</b><span>기록은 그대로 유지돼요</span></span><button class="ubtn" data-act="doUpdate">업데이트</button>`;
   document.body.appendChild(d); requestAnimationFrame(()=>d.classList.add("on"));
-  let y0=null, dy=0, timer=setTimeout(()=>hideUpdBar(),3000);
+  let y0=null, dy=0, timer=setTimeout(()=>hideUpdBar(),5000);
   d.addEventListener("touchstart",e=>{ if(e.target.closest(".ubtn")) return; clearTimeout(timer); y0=e.touches[0].clientY; dy=0; d.style.transition="none"; },{passive:true});
   d.addEventListener("touchmove",e=>{ if(y0==null) return; dy=Math.min(0,e.touches[0].clientY-y0); d.style.transform=`translateY(${dy}px)`; if(e.cancelable) e.preventDefault(); },{passive:false});
-  d.addEventListener("touchend",()=>{ if(y0==null) return; y0=null; d.style.transition=""; d.style.transform=""; if(dy<-24) hideUpdBar(); else timer=setTimeout(()=>hideUpdBar(),3000); });
+  d.addEventListener("touchend",()=>{ if(y0==null) return; y0=null; d.style.transition=""; d.style.transform=""; if(dy<-24) hideUpdBar(); else timer=setTimeout(()=>hideUpdBar(),5000); });
 }
 function hideUpdBar(){ const b=$("#updBar"); if(!b) return; b.classList.remove("on"); setTimeout(()=>b.remove(),350); ls.set("fn_updTried",{v:newVer,t:Date.now()}); }
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden) checkUpdate(false); });
