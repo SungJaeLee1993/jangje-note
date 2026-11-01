@@ -437,6 +437,14 @@ nav .plus:active{transform:scale(.93)}
 .raud .x{width:30px;height:30px;border-radius:50%;background:#EEF0F3;color:var(--sub2);font-size:13px}
 .recopt{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--sub2);margin-top:10px}
 details.tr{background:var(--card);border-radius:14px;padding:12px 14px;margin-top:6px}details.tr summary{font-weight:600;font-size:14px;color:var(--sub2)}
+
+/* recording bar */
+.recbar{position:fixed;left:16px;right:16px;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:39;max-width:528px;margin:0 auto;display:none;align-items:center;gap:10px;background:rgba(28,28,30,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);color:#fff;border-radius:99px;padding:8px 8px 8px 16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.recbar.on{display:flex}
+.recbar .rbm{flex:1;display:flex;align-items:center;gap:10px;text-align:left;color:#fff;min-width:0}
+.recbar b{font-variant-numeric:tabular-nums;font-size:16px}
+.recbar span.t{font-size:13px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recbar .rbs{background:#fff;color:#2B2B2B;border-radius:99px;padding:9px 16px;font-weight:700;font-size:14px;flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -449,6 +457,7 @@ details.tr{background:var(--card);border-radius:14px;padding:12px 14px;margin-to
   <main id="view"></main>
 </div>
 <nav><div class="in" id="nav"></div></nav>
+<div class="recbar" id="recBar"><button class="rbm" data-act="recBack"><i class="recdot"></i><b id="recBarT">0:00</b><span class="t" id="recBarS">탭하면 일지로 돌아가요</span></button><button class="rbs" data-act="recBarStop">■ 정지</button></div>
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
 <div class="toast" id="toast"></div>
@@ -1066,6 +1075,7 @@ function quickAdd(){
   openSheet(`${head("새로 만들기")}
     <div class="qa">
       <button class="dark" data-act="newLog"><span class="ic">${svg("logs",20)}</span><b>실습 일지</b><span>견학·실습 기록</span></button>
+      <button class="dark" data-act="newRecLog"><span class="ic"><i class="recdot" style="width:14px;height:14px"></i></span><b>바로 녹음</b><span>일지 열고 녹음 시작</span></button>
       <button data-act="newNote"><span class="ic">${svg("notes",20)}</span><b>공부 노트</b><span>이론·메모</span></button>
       <button data-act="newCard"><span class="ic">${svg("cards",20)}</span><b>암기 카드</b><span>용어 외우기</span></button>
       <button data-act="newQuestion"><span class="ic">${svg("question",20)}</span><b>문제 만들기</b><span>객관식·O/X·주관식</span></button>
@@ -1418,7 +1428,7 @@ function readQuestionForm(){
 
 /* ---------- sheets ---------- */
 let onSheetClose=null;
-function openSheet(html){ lockScroll(); sheetDirty=false; closeArm=false; $("#sheet").style.transform=""; $("#sheetBody").innerHTML=html; const sv=$("#sheetBody .shead [data-act^='save']"); $("#sheet").classList.toggle("hasfoot",!!sv); if(sv){ const f=document.createElement("div"); f.className="sfoot"; const bt=document.createElement("button"); bt.className="btn block big"; bt.dataset.act=sv.dataset.act; if(sv.dataset.id) bt.dataset.id=sv.dataset.id; bt.textContent="저장"; f.appendChild(bt); $("#sheetBody").appendChild(f); } $("#scrim").style.display="block"; requestAnimationFrame(()=>$("#sheet").classList.add("open")); sheetOpen=true; $("#sheet").scrollTop=0; }
+function openSheet(html){ if(recMini){ toast("녹음 중이에요 · 위 막대를 눌러 일지로 돌아가요"); return; } lockScroll(); sheetDirty=false; closeArm=false; $("#sheet").style.transform=""; $("#sheetBody").innerHTML=html; const sv=$("#sheetBody .shead [data-act^='save']"); $("#sheet").classList.toggle("hasfoot",!!sv); if(sv){ const f=document.createElement("div"); f.className="sfoot"; const bt=document.createElement("button"); bt.className="btn block big"; bt.dataset.act=sv.dataset.act; if(sv.dataset.id) bt.dataset.id=sv.dataset.id; bt.textContent="저장"; f.appendChild(bt); $("#sheetBody").appendChild(f); } $("#scrim").style.display="block"; requestAnimationFrame(()=>$("#sheet").classList.add("open")); sheetOpen=true; $("#sheet").scrollTop=0; }
 function closeSheet(){ unlockScroll(); $("#sheet").style.transform=""; $("#sheet").classList.remove("open"); $("#scrim").style.display="none"; sheetOpen=false; if(pendingRender){pendingRender=false;} render(); }
 let sheetDirty=false, closeArm=false, armT=null, lockY=null;
 /* background scroll lock while a sheet is open (iOS needs position:fixed on body) */
@@ -1426,8 +1436,20 @@ function lockScroll(){ if(lockY!=null) return; lockY=window.scrollY; const b=doc
 function unlockScroll(){ if(lockY==null) return; const y=lockY; lockY=null; const b=document.body.style; b.position=""; b.top=""; b.left=""; b.right=""; b.width=""; window.scrollTo(0,y); }
 $("#scrim").addEventListener("touchmove",e=>{ if(e.cancelable) e.preventDefault(); },{passive:false});
 $("#sheet").addEventListener("input",()=>{ sheetDirty=true; });
+
+/* 녹음 중에는 시트를 접고 앱을 계속 쓸 수 있어요 */
+let recMini=false;
+function minimizeSheet(){
+  unlockScroll(); $("#sheet").style.transform=""; $("#sheet").classList.remove("open"); $("#scrim").style.display="none"; sheetOpen=false; recMini=true;
+  $("#recBar").classList.add("on"); render();
+}
+function restoreSheet(){
+  if(!recMini) return; recMini=false; $("#recBar").classList.remove("on");
+  lockScroll(); $("#scrim").style.display="block"; requestAnimationFrame(()=>$("#sheet").classList.add("open")); sheetOpen=true;
+}
+setInterval(()=>{ if(!REC) return; const t=fmtT((Date.now()-REC.t0)/1000); const b=$("#recBarT"); if(b) b.textContent=t; const s=$("#recBarS"); if(s) s.textContent=REC.dict&&!REC.dictOff?"받아쓰기 중 · 탭하면 일지로":"탭하면 일지로 돌아가요"; },500);
 function requestClose(){
-  if(REC){ toast("녹음 중이에요 · 먼저 정지를 눌러 주세요"); return; }
+  if(REC){ return minimizeSheet(); }
   if(sheetDirty && !closeArm){
     closeArm=true; clearTimeout(armT); armT=setTimeout(()=>closeArm=false,3000);
     $("#sheet").style.transform=""; toast("작성 중인 내용이 있어요 · 한 번 더 닫으면 저장 안 돼요"); return;
@@ -1544,7 +1566,7 @@ async function recStart(){
 function recStop(){
   return new Promise(res=>{
     const R=REC; if(!R) return res(); REC=null;
-    clearInterval(R.tick); R.dictOff=true; try{ R.sr?.stop(); }catch(e){} releaseAwake(R); try{ R.sil?.pause(); }catch(e){}
+    clearInterval(R.tick); R.dictOff=true; $("#recBar")?.classList.remove("on"); try{ R.sr?.stop(); }catch(e){} releaseAwake(R); try{ R.sil?.pause(); }catch(e){}
     let done=false;
     const fin=async()=>{ if(done) return; done=true;
       R.stream.getTracks().forEach(t=>t.stop());
@@ -1742,6 +1764,9 @@ document.addEventListener("click", async e=>{
       if(!n.title && !n.body.trim()) return toast("제목이나 내용을 입력해 주세요");
       closeSheet(); await put("notes",n); return toast("저장했어요");
     }
+    case "recBack": return restoreSheet();
+    case "recBarStop": { await recStop(); if(recMini){ restoreSheet(); toast("녹음을 붙였어요 · 저장을 눌러 주세요"); } return; }
+    case "newRecLog": { editLog(); return recStart(); }
     case "recStart": return recStart();
     case "recStop": return recStop();
     case "copyPrompt": return copyPrompt();
@@ -1862,7 +1887,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.02-1";
+const APP_VERSION="2026.11.02-2";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
