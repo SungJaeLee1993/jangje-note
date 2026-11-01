@@ -424,6 +424,18 @@ nav .plus:active{transform:scale(.93)}
 .tip .tn{font-size:13px;color:var(--sub);font-variant-numeric:tabular-nums}
 .tip .tt{font-size:16px;font-weight:600;line-height:1.5;margin-top:10px;letter-spacing:-.01em}
 .tip.swap .tt,.tip.swap .tg{animation:fadein .3s ease}
+
+/* recording */
+.recbox{background:var(--card);border-radius:18px;padding:14px;box-shadow:var(--shadow-s)}
+.recrow{display:flex;align-items:center;gap:10px}
+.recdot{width:12px;height:12px;border-radius:50%;background:#D04545;animation:blink 1s ease-in-out infinite;flex:0 0 auto}
+.recrow b{font-variant-numeric:tabular-nums;font-size:20px}
+.rechint{font-size:12.5px;color:var(--sub);line-height:1.5;margin-top:8px}
+.raud{display:flex;align-items:center;gap:8px;margin-top:10px}
+.raud audio{flex:1;min-width:0;height:40px}
+.raud .x{width:30px;height:30px;border-radius:50%;background:#EEF0F3;color:var(--sub2);font-size:13px}
+.recopt{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--sub2);margin-top:10px}
+details.tr{background:var(--card);border-radius:14px;padding:12px 14px;margin-top:6px}details.tr summary{font-weight:600;font-size:14px;color:var(--sub2)}
 </style>
 </head>
 <body>
@@ -489,7 +501,7 @@ function sortAll(){
   S.cards.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   S.sessions.sort((a,b)=>(b.endedAt||0)-(a.endedAt||0));
 }
-const mediaIds = o => (o?.photos||[]).map(p=>p.mediaId).filter(Boolean);
+const mediaIds = o => [...(o?.photos||[]),...(o?.audios||[])].map(p=>p.mediaId).filter(Boolean);
 
 async function put(col, obj){
   const old = S[col].find(x=>x.id===obj.id);
@@ -660,7 +672,7 @@ async function buildBackup(withVideo){
   const all = await idbAll("media");
   const out = { app:"farrier-notes", version:1, exportedAt:new Date().toISOString(), data:{}, media:[] };
   for(const c of COLS) out.data[c]=S[c];
-  for(const m of all){ if(m.type==="video" && !withVideo) continue; out.media.push({ id:m.id, type:m.type, mime:m.mime, b64: await blobToB64(mediaBlob(m)) }); }
+  for(const m of all){ if((m.type==="video"||m.type==="audio") && !withVideo) continue; out.media.push({ id:m.id, type:m.type, mime:m.mime, b64: await blobToB64(mediaBlob(m)) }); }
   return new File([JSON.stringify(out)], `장제노트-백업-${ymd()}.json`, { type:"application/json" });
 }
 async function shareBackup(file){
@@ -1414,6 +1426,7 @@ function unlockScroll(){ if(lockY==null) return; const y=lockY; lockY=null; cons
 $("#scrim").addEventListener("touchmove",e=>{ if(e.cancelable) e.preventDefault(); },{passive:false});
 $("#sheet").addEventListener("input",()=>{ sheetDirty=true; });
 function requestClose(){
+  if(REC){ toast("녹음 중이에요 · 먼저 정지를 눌러 주세요"); return; }
   if(sheetDirty && !closeArm){
     closeArm=true; clearTimeout(armT); armT=setTimeout(()=>closeArm=false,3000);
     $("#sheet").style.transform=""; toast("작성 중인 내용이 있어요 · 한 번 더 닫으면 저장 안 돼요"); return;
@@ -1460,17 +1473,100 @@ function editNote(n){
     ${S.notes.some(x=>x.id===n.id)?`<button class="btn danger block" style="margin-top:22px" data-act="askDel" data-col="notes" data-id="${n.id}">노트 삭제</button><div id="cf"></div>`:""}`);
   sheetCtx={ col:"notes", obj:n }; drawPh();
 }
+
+/* ---------- 녹음 ---------- */
+let REC=null, draftAudios=[];
+const fmtT = sec => `${Math.floor(sec/60)}:${pad(Math.floor(sec%60))}`;
+const recMime = () => { for(const t of ["audio/mp4","audio/webm;codecs=opus","audio/webm"]){ try{ if(MediaRecorder.isTypeSupported(t)) return t; }catch(e){} } return ""; };
+function silentWav(){ const sr=8000,n=sr, b=new ArrayBuffer(44+n), v=new DataView(b); const w=(o,t)=>{ for(let i=0;i<t.length;i++) v.setUint8(o+i,t.charCodeAt(i)); };
+  w(0,"RIFF"); v.setUint32(4,36+n,true); w(8,"WAVE"); w(12,"fmt "); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,sr,true); v.setUint32(28,sr,true); v.setUint16(32,1,true); v.setUint16(34,8,true); w(36,"data"); v.setUint32(40,n,true); new Uint8Array(b,44).fill(128);
+  return URL.createObjectURL(new Blob([b],{type:"audio/wav"})); }
+function drawRec(){
+  const el=$("#recBox"); if(!el) return;
+  const items=draftAudios.map((a,i)=>`<div class="raud"><audio controls preload="metadata" src="${esc(URLS[a.mediaId]||"")}"></audio><button class="x" data-act="rmAud" data-idx="${i}" aria-label="삭제">✕</button></div>`).join("");
+  if(REC){ el.innerHTML=`<div class="recrow"><i class="recdot"></i><b id="recT">${fmtT((Date.now()-REC.t0)/1000)}</b><span style="flex:1"></span><button class="btn block" style="width:auto;padding:12px 22px" data-act="recStop">■ 정지</button></div>
+    <div class="rechint">화면을 켜 둔 채로 두세요. 화면이 꺼지거나 다른 앱으로 가면 녹음이 멈출 수 있어요.</div>${items}`; return; }
+  el.innerHTML=`<button class="btn line block" data-act="recStart">● 녹음 시작</button>
+    <label class="recopt"><input type="checkbox" id="recSil" ${ls.get("fn_recSil",false)?"checked":""}> 화면이 꺼져도 이어가기 시도 (실험)</label>${items}`;
+  const c=$("#recSil"); if(c) c.onchange=()=>ls.set("fn_recSil",c.checked);
+}
+async function recStart(){
+  if(REC) return;
+  if(!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder==="undefined") return toast("이 기기에서는 앱 녹음을 쓸 수 없어요 · 음성 메모를 이용해 주세요");
+  let stream; try{ stream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e){ return toast(e?.name==="NotAllowedError" ? "마이크 권한을 허용해 주세요" : "마이크를 켤 수 없어요"); }
+  const mime=recMime(); let mr;
+  try{ mr=new MediaRecorder(stream, mime?{mimeType:mime}:undefined); }catch(e){ stream.getTracks().forEach(t=>t.stop()); return toast("녹음을 시작하지 못했어요"); }
+  const R={mr,stream,chunks:[],t0:Date.now(),last:Date.now(),mime:mr.mimeType||mime||"audio/mp4"}; REC=R;
+  mr.ondataavailable=e=>{ if(e.data && e.data.size){ R.chunks.push(e.data); R.last=Date.now(); } };
+  mr.start(1000);
+  try{ R.lock=await navigator.wakeLock?.request("screen"); }catch(e){}
+  if(ls.get("fn_recSil",false)){ try{ const a=new Audio(silentWav()); a.loop=true; a.setAttribute("playsinline",""); await a.play(); R.sil=a; }catch(e){} }
+  R.tick=setInterval(()=>{ const t=$("#recT"); if(t) t.textContent=fmtT((Date.now()-R.t0)/1000); },500);
+  sheetDirty=true; buzz(10); drawRec();
+}
+function recStop(){
+  return new Promise(res=>{
+    const R=REC; if(!R) return res(); REC=null;
+    clearInterval(R.tick); try{ R.lock?.release(); }catch(e){} try{ R.sil?.pause(); }catch(e){}
+    let done=false;
+    const fin=async()=>{ if(done) return; done=true;
+      R.stream.getTracks().forEach(t=>t.stop());
+      const dur=(Date.now()-R.t0)/1000;
+      if(R.chunks.length){
+        try{ const data=await new Blob(R.chunks,{type:R.mime}).arrayBuffer(); const id=uid();
+          await idbPut("media",{ id, data, type:"audio", mime:R.mime, dur, createdAt:Date.now() });
+          URLS[id]=URL.createObjectURL(new Blob([data],{type:R.mime}));
+          draftAudios.push({ mediaId:id, dur, createdAt:Date.now() }); toast(`녹음 ${fmtT(dur)} 붙였어요`);
+        }catch(e){ toast(e?.name==="QuotaExceededError" ? "폰 저장 공간이 부족해요" : "녹음을 저장하지 못했어요"); }
+      } else toast("녹음된 소리가 없어요");
+      drawRec(); res(); };
+    if(R.mr.state==="inactive") return fin();
+    R.mr.onstop=fin; setTimeout(fin,3000); try{ R.mr.stop(); }catch(e){ fin(); }
+  });
+}
+document.addEventListener("visibilitychange",async()=>{
+  if(!REC) return;
+  if(document.hidden) return;
+  try{ if(!REC.lock || REC.lock.released) REC.lock=await navigator.wakeLock?.request("screen"); }catch(e){}
+  if(Date.now()-REC.last>4000) toast("화면을 벗어난 동안 녹음이 멈췄을 수 있어요");
+});
+async function copyPrompt(){
+  const v=id=>($("#"+id)?.value||"").trim();
+  const t=v("lTranscript"); if(!t) return toast("전사문을 먼저 붙여넣어 주세요");
+  const text=`아래는 장제 실습 중 나눈 대화의 전사문이야. 음성 인식이라 틀린 글자가 있을 수 있어.
+다음 형식으로 정리해줘. 전사문에 없는 내용은 지어내지 말고, 확실하지 않은 건 (?)로 표시해줘.
+
+[한 일]
+[배운 점]
+[새로 나온 용어] (영어·한글 같이)
+[다음에 할 것·질문]
+
+날짜: ${v("lDate")}
+장소: ${v("lPlace")}
+함께한 분: ${v("lMentor")}
+말 정보: ${v("lHorse")}
+
+--- 전사문 ---
+${t}`;
+  try{ await navigator.clipboard.writeText(text); }
+  catch(e){ const ta=document.createElement("textarea"); ta.value=text; ta.style.cssText="position:fixed;left:-9999px"; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); }catch(_){} ta.remove(); }
+  toast("복사했어요 · Claude 앱에 붙여넣으세요");
+}
 /* log */
 function viewLog(l){
   const row=(k,v)=>v?`<label class="f">${k}</label><div class="view-body">${esc(v)}</div>`:"";
   openSheet(`${head("실습 일지",`<button class="link" data-act="editLog" data-id="${l.id}">편집</button>`)}
     <div style="color:var(--sub);font-size:14px">${fmtDate(l.date)}</div><h2 style="margin:4px 0 6px">${esc(l.title||"실습 기록")}</h2>
     ${row("장소",l.place)}${row("함께한 장제사·선생님",l.mentor)}${row("말 정보",l.horse)}${row("한 일",l.did)}${row("배운 점",l.learned)}${row("다음에 할 것·질문",l.next)}
+    ${row("정리",l.summary)}
+    ${(l.audios||[]).length?`<label class="f">녹음</label>${l.audios.map(a=>`<div class="raud"><audio controls preload="metadata" src="${esc(URLS[a.mediaId]||"")}"></audio></div>`).join("")}`:""}
+    ${l.transcript?`<details class="tr"><summary>전사문 보기</summary><div class="view-body" style="margin-top:8px">${esc(l.transcript)}</div></details>`:""}
     ${gallery(l.photos)}`);
 }
 function editLog(l){
   l = l || { id:uid(), date:ymd(), title:"", place:"", mentor:"", horse:"", did:"", learned:"", next:"", photos:[], createdAt:Date.now() };
-  draftPhotos=[...(l.photos||[])];
+  draftPhotos=[...(l.photos||[])]; draftAudios=[...(l.audios||[])];
   const f=(id,lab,v,ph,ta)=>`<label class="f">${lab}</label>${ta?`<textarea class="in-f" id="${id}" placeholder="${ph}">${esc(v)}</textarea>`:`<input class="in-f" id="${id}" value="${esc(v)}" placeholder="${ph}">`}`;
   openSheet(`${head(S.logs.some(x=>x.id===l.id)?"일지 편집":"새 일지",`<button class="link" data-act="saveLog" data-id="${l.id}">저장</button>`)}
     <label class="f">날짜</label><input class="in-f" type="date" id="lDate" value="${esc(l.date)}">
@@ -1482,8 +1578,14 @@ function editLog(l){
     ${f("lLearned","배운 점",l.learned,"새로 알게 된 것, 팁",1)}
     ${f("lNext","다음에 할 것·질문",l.next,"궁금한 점, 다음 목표",1)}
     <label class="f">사진·영상 (발굽, 편자, 작업 과정)</label><div class="ph" id="ph"></div>
+    <label class="f">녹음</label><div class="recbox" id="recBox"></div>
+    <label class="f">전사문 (음성 메모 → 전사문 복사 → 붙여넣기)</label>
+    <textarea class="in-f" id="lTranscript" style="min-height:130px" placeholder="음성 메모 앱에서 전사문을 복사해 붙여넣어요">${esc(l.transcript||"")}</textarea>
+    <button class="btn line block" style="margin-top:8px" data-act="copyPrompt">정리 요청문 복사</button>
+    <label class="f">정리 (Claude가 정리한 내용 붙여넣기)</label>
+    <textarea class="in-f" id="lSummary" style="min-height:130px" placeholder="한 일 · 배운 점 · 새로 나온 용어 · 다음에 할 것">${esc(l.summary||"")}</textarea>
     ${S.logs.some(x=>x.id===l.id)?`<button class="btn danger block" style="margin-top:22px" data-act="askDel" data-col="logs" data-id="${l.id}">일지 삭제</button><div id="cf"></div>`:""}`);
-  sheetCtx={ col:"logs", obj:l }; drawPh();
+  sheetCtx={ col:"logs", obj:l }; drawPh(); drawRec();
 }
 /* card */
 function editCard(c){
@@ -1603,8 +1705,13 @@ document.addEventListener("click", async e=>{
       if(!n.title && !n.body.trim()) return toast("제목이나 내용을 입력해 주세요");
       closeSheet(); await put("notes",n); return toast("저장했어요");
     }
+    case "recStart": return recStart();
+    case "recStop": return recStop();
+    case "copyPrompt": return copyPrompt();
+    case "rmAud": { const a=draftAudios.splice(+d.idx,1)[0]; if(a && !(sheetCtx?.obj?.audios||[]).some(x=>x.mediaId===a.mediaId)) dropMedia(a.mediaId); return drawRec(); }
     case "saveLog": {
-      const l={...sheetCtx.obj, date:$("#lDate").value||ymd(), title:$("#lTitle").value.trim(), place:$("#lPlace").value.trim(), mentor:$("#lMentor").value.trim(), horse:$("#lHorse").value.trim(), did:$("#lDid").value, learned:$("#lLearned").value, next:$("#lNext").value, photos:draftPhotos, updatedAt:Date.now()};
+      if(REC) await recStop();
+      const l={...sheetCtx.obj, audios:draftAudios, transcript:$("#lTranscript").value, summary:$("#lSummary").value, date:$("#lDate").value||ymd(), title:$("#lTitle").value.trim(), place:$("#lPlace").value.trim(), mentor:$("#lMentor").value.trim(), horse:$("#lHorse").value.trim(), did:$("#lDid").value, learned:$("#lLearned").value, next:$("#lNext").value, photos:draftPhotos, updatedAt:Date.now()};
       closeSheet(); await put("logs",l); return toast("저장했어요");
     }
     case "saveCard": {
@@ -1718,7 +1825,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.10.30-1";
+const APP_VERSION="2026.11.01-1";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
