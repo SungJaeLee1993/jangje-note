@@ -531,6 +531,15 @@ async function del(col, id){
 }
 async function dropMedia(id){ for(const k of [id,id+"_t"]){ try{ await idbDel("media",k); }catch(e){} if(URLS[k]){ URL.revokeObjectURL(URLS[k]); delete URLS[k]; } } }
 
+/* one-time import of logs prepared in /import/logs.json (text only; photos are added in-app) */
+async function importLogs(){
+  try{
+    const r=await fetch("import/logs.json",{cache:"no-store"}); if(!r.ok) return;
+    const list=await r.json(), done=ls.get("fn_imported",[]); let n=0;
+    for(const l of list){ if(done.includes(l.id) || S.logs.some(x=>x.id===l.id)) continue; await put("logs",l); done.push(l.id); n++; }
+    ls.set("fn_imported",done); if(n) toast(`일지 ${n}개 가져왔어요`);
+  }catch(e){ console.warn("import",e); }
+}
 async function init(){
   loadNews();
   $("#view").innerHTML=skeleton(); drawNav();
@@ -547,7 +556,7 @@ async function init(){
     let persisted=false;
     try{ persisted = await navigator.storage?.persisted?.() || await navigator.storage?.persist?.() || false; }catch(e){}
     storageOK = true; setMode(persisted); updateBadge();
-    loadBank();
+    loadBank(); importLogs();
   }catch(e){
     console.error(e); modeInfo={text:"⚠︎ 저장 불가",warn:true};
     toast("이 브라우저에서는 저장할 수 없어요");
@@ -1977,7 +1986,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.02-6";
+const APP_VERSION="2026.11.03-1";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
