@@ -1,2 +1,1 @@
-img: 뉴스1 <HTTPError 403: 'Forbidden'>
-img: Queen 이코노미퀸 URLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1011)'))
+img: 서울신문 OSError('image file is truncated (10 bytes not processed)')
