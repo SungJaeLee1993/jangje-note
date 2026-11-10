@@ -1,1 +1,0 @@
-img: 서울신문 OSError('image file is truncated (10 bytes not processed)')
