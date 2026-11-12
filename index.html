@@ -1802,10 +1802,19 @@ const PHOTO_CARDS = [
  ["pc-s-sens","해부학","빨간 화살표가 가리키는 부위의 이름은? (발굽 종단면)","제저 감각부 — 제저 중 감각이 있는 살아 있는 조직 쪽. ※설명은 교재로 확인 필요","img/s_sens.jpg"],
  ["pc-s-horn","해부학","빨간 화살표가 가리키는 부위의 이름은? (발굽 종단면)","제저 비감각부(각질부) — 제저 중 단단히 각질화된 바깥 부분. ※설명은 교재로 확인 필요","img/s_horn.jpg"],
  ["pc-rasp","장비·도구","이 도구의 이름은?","라스프 (Rasp) — 발굽 바닥·외벽을 다듬는 줄.","img/t_rasp.jpg"],
- ["pc-nipper","장비·도구","이 도구의 이름은?","니퍼 (Hoof nipper) — 자란 제벽을 잘라내는 대형 집게. ※한글 명칭은 교재로 확인 필요","img/t_nipper.jpg"],
+ ["pc-t-halfround","장비·도구","이 도구의 이름은?","하프라운드 훕 니퍼 (Half-round hoof nipper) — 자란 제벽을 잘라 길이를 정리하는 작은 니퍼.","img/t_halfround.jpg"],
+ ["pc-t-nipperl","장비·도구","이 도구의 이름은?","훕 니퍼 (Hoof nipper) — 제벽을 크게 잘라내는 큰 니퍼. ※종류 확인 필요","img/t_pulloff.jpg"],
+ ["pc-t-pulloff","장비·도구","이 도구의 이름은?","풀오프 (Pull-offs) — 박힌 편자를 뽑는 집게.","img/t_nipper_l.jpg"],
+ ["pc-t-hammer","장비·도구","이 도구의 이름은?","장제 망치 (Driving hammer) — 편자못을 박고, 뾰족한 쪽으로 못 끝을 꺾는다.","img/t_hammer.jpg"],
+ ["pc-t-clincher","장비·도구","이 도구의 이름은?","클린처 (Clincher) — 제벽 밖으로 나온 못 끝을 눌러 붙이는 집게. ※확인 필요","img/t_clincher.jpg"],
+ ["pc-t-diamond","장비·도구","이 도구의 이름은?","클린치 커터 (Clinch cutter)로 추정 — 편자를 뽑기 전에 꺾인 못 끝을 펴거나 끊는 도구. ※이름·용도 확인 필요","img/t_diamond.jpg"],
+ ["pc-t-mallet","장비·도구","이 도구의 이름은?","나일론 머리 망치 (Soft-face mallet). ※용도 확인 필요","img/t_mallet.jpg"],
+ ["pc-t-tongs","장비·도구","이 도구의 이름은?","편자 집게 (Hot-shoe tongs) — 달군 편자를 잡고 모루로 옮긴다. 고리로 손잡이를 고정. ※한글 명칭 확인 필요","img/t_tongs_ring.jpg"],
+ ["pc-t-rounding","장비·도구","이 도구의 이름은?","성형 망치 (Rounding hammer) — 모루 위에서 달군 편자를 두드려 모양을 잡는다. ※한글 명칭 확인 필요","img/t_rounding.jpg"],
+ ["pc-t-forge","장비·도구","이 도구의 이름은?","포지 집게 (Forge tongs) — 화덕 불 속의 편자를 꺼내고 넣을 때 잡는다. ※한글 명칭 확인 필요","img/t_forge.jpg"],
  ["pc-knife","장비·도구","이 도구의 이름은?","후프 나이프 (Hoof knife) — 제저·제차의 각질을 깎아내는 칼. ※한글 명칭은 교재로 확인 필요","img/t_knife.jpg"]
 ];
-const OLD_PHOTO_IDS=["pc-hoof","pc-hammer","pc-mallet"];
+const OLD_PHOTO_IDS=["pc-hoof","pc-hammer","pc-mallet","pc-nipper"];
 async function addPhotoCards(){
   const t=ymd(), now=Date.now(); let n=0;
   for(const oid of OLD_PHOTO_IDS) if(S.cards.some(c=>c.id===oid)) await del("cards",oid);
@@ -1986,7 +1995,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.03-1";
+const APP_VERSION="2026.11.12-2";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
