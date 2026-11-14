@@ -1791,6 +1791,17 @@ function renderVisits(){
       return `${hd}<button class="item" data-act="openVisit" data-id="${v.id}"><div class="t">${esc(v.place||"승마장")}</div><div class="m">${fmtDate(v.date)} · ${hs.length}마리</div>${hs.length?horseTable(hs):""}${v.note?`<div class="b">${esc(v.note)}</div>`:""}</button>`;
     }).join(""):`<div class="empty">방문한 승마장과 장제한 말을 기록해 보세요<br><small>승마장 이름 · 날짜 · 말 이름만 넣으면 돼요</small></div>`}`;
 }
+const stockBrands=()=>{ const b=[...new Set(S.stock.filter(x=>x.brand).map(x=>x.brand))]; return b.length?b:["기본"]; };
+const useBrand=()=>{ const bs=stockBrands(), b=ls.get("fn_stkBrand",bs[0]); return bs.includes(b)?b:bs[0]; };
+function visitUse(v){ const m={}; (v.horses||[]).map(hObj).forEach(h=>{ const add=(k,sz)=>{ if(!sz) return; const key=k+"|"+sz; m[key]=(m[key]||0)+1; }; if(h.front) add(h.side?"사이드":"프론트",h.front); if(h.hind&&!h.pro) add("하인드",h.hind); }); return m; }
+async function adjustStock(oldB,oldUse,newB,newUse){
+  const net={}; const add=(b,u,sg)=>Object.entries(u||{}).forEach(([key,n])=>{ const k=b+"|"+key; net[k]=(net[k]||0)+sg*n; });
+  add(oldB,oldUse,1); add(newB,newUse,-1); let used=0;
+  for(const [key,d] of Object.entries(net)){ if(!d) continue; const [b,kind,sz]=key.split("|"); let x=stkFind(b,kind,sz,"차량");
+    if(!x) x={id:uid(),cat:"편자",brand:b,loc:"차량",kind,size:sz,name:`${b} ${kind} ${sz}호`,qty:0,min:0,createdAt:Date.now()};
+    await put("stock",{...x,qty:Math.max(0,(x.qty||0)+d),checked:ymd()}); if(d<0) used-=d; }
+  return used;
+}
 function editVisit(v){
   const isNew=!v;
   v=v||{ id:uid(), date:ymd(), place:"", horses:[], note:"", createdAt:Date.now() };
@@ -2075,7 +2086,9 @@ document.addEventListener("click", async e=>{
       addHorseFromInput();
       const v={...sheetCtx.obj, date:$("#vDate").value||ymd(), place:$("#vPlace").value.trim(), horses:[...draftHorses], note:$("#vNote").value.trim()};
       if(!v.place && !v.horses.length) return toast("승마장 이름이나 말을 입력해 주세요");
-      closeSheet(); await put("visits",v); return toast("저장했어요");
+      const use=visitUse(v), old=sheetCtx.obj, b=old.brand||useBrand(); v.brand=b; v.use=use;
+      closeSheet(); await put("visits",v); const n=await adjustStock(b,old.use,b,use);
+      return toast(n?`저장했어요 · 차량 편자 −${n}켤레`:"저장했어요");
     }
     case "newStock": return editStock();
     case "openStock": return editStock(S.stock.find(x=>x.id===d.id));
@@ -2098,7 +2111,7 @@ document.addEventListener("click", async e=>{
       try{ await navigator.clipboard.writeText("부족한 재고\n"+t); toast("복사했어요"); }catch(e){ toast("복사 실패"); } return;
     }
     case "askDel": $("#cf").innerHTML=`<div class="confirm"><button class="btn line block" data-act="cancelDel">취소</button><button class="btn block" style="background:var(--bad)" data-act="doDel" data-col="${d.col}" data-id="${d.id}">정말 삭제</button></div>`; return;
-    case "doDel": closeSheet(); await del(d.col,d.id); return toast("삭제했어요");
+    case "doDel": closeSheet(); if(d.col==="visits"){ const v=S.visits.find(x=>x.id===d.id); if(v&&v.use) await adjustStock(v.brand,v.use,v.brand,{}); } await del(d.col,d.id); return toast("삭제했어요");
     case "starter": return addStarter();
     case "startReview": return startReview();
     case "endReview": review=null; return render();
@@ -2198,7 +2211,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.15-10";
+const APP_VERSION="2026.11.15-11";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
