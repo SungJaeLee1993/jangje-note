@@ -113,8 +113,12 @@ h1{font-size:32px;letter-spacing:-.03em;margin:0;font-weight:800;line-height:1.1
 .vh{font-size:13px;font-weight:700;color:var(--sub);margin:18px 4px 8px}
 .vchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .vchips span,.vchips button{background:#EEF0F4;border-radius:99px;padding:5px 11px;font-size:13px;font-weight:600;color:var(--ink)}
+.vchips.tap button.on{background:var(--primary);color:#fff;box-shadow:none}
 .vchips.tap button{background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line);color:var(--sub2)}
 .vchips button.x{background:var(--primary);color:#fff}
+.vchips .hc{display:inline-flex;background:var(--primary);border-radius:99px;overflow:hidden;padding:0}
+.vchips .hc button{background:none!important;color:#fff!important;padding:6px 10px;font-size:13px;font-weight:600;border-radius:0!important}
+.vchips .hc button+button{padding-left:4px;opacity:.7}
 .item.stk{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 18px}
 .item.stk .nm{flex:1;min-width:0;text-align:left}
 .item.stk.low .t{color:var(--bad)}
@@ -1738,7 +1742,14 @@ function editLog(l){
 }
 
 /* ---------- 방문 기록 (승마장 · 날짜 · 장제한 말) ---------- */
-let draftHorses=[];
+let draftHorses=[], szType="", szNum="", szTg="v";
+const SZ_TYPES=["프론트","사이드","하인드"];
+function drawSizeChips(){ const c=$("#szc"); if(!c) return; c.innerHTML=`<div class="vchips tap">${SZ_TYPES.map(t=>`<button class="${szType===t?"on":""}" data-act="pickType" data-id="${t}">${t}</button>`).join("")}</div><div class="vchips tap" style="margin-top:6px">${[1,2,3,4,5,6,7].map(n=>`<button class="${szNum==n?"on":""}" data-act="pickNum" data-id="${n}">${n}</button>`).join("")}</div>`; }
+function syncSize(){ const v=[szType,szNum].filter(Boolean).join(" "); if(szTg==="v") $("#vSize").value=v; else $("#sName").value=v?"편자 "+v:""; drawSizeChips(); }
+function parseSize(z){ const m=String(z||"").match(/(프론트|사이드|하인드)?\s*(\d)?/); szType=m?.[1]||""; szNum=m?.[2]||""; }
+const hObj=h=>typeof h==="string"?{n:h,size:"",cond:""}:{n:h.n||"",size:h.size||"",cond:h.cond||""};
+const hLabel=h=>{ h=hObj(h); return [h.n,/^\d+$/.test(h.size)?h.size+"호":h.size,h.cond].filter(Boolean).join(" · "); };
+const allHorses=()=>S.visits.flatMap(x=>(x.horses||[]).map(hObj));
 function freq(arr){ const m={}; arr.filter(Boolean).forEach(x=>m[x]=(m[x]||0)+1); return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(x=>x[0]); }
 function renderVisits(){
   const ym=ymd().slice(0,7), mv=S.visits.filter(v=>(v.date||"").startsWith(ym));
@@ -1753,36 +1764,46 @@ function renderVisits(){
     ${S.visits.length?S.visits.map(v=>{
       const ym2=(v.date||"").slice(0,7), hd=ym2!==last?`<div class="vh">${+ym2.slice(5)}월 ${ym2.slice(0,4)}</div>`:""; last=ym2;
       const hs=v.horses||[];
-      return `${hd}<button class="item" data-act="openVisit" data-id="${v.id}"><div class="t">${esc(v.place||"승마장")}</div><div class="m">${fmtDate(v.date)} · ${hs.length}마리</div>${hs.length?`<div class="vchips">${hs.map(h=>`<span>${esc(h)}</span>`).join("")}</div>`:""}${v.note?`<div class="b">${esc(v.note)}</div>`:""}</button>`;
+      return `${hd}<button class="item" data-act="openVisit" data-id="${v.id}"><div class="t">${esc(v.place||"승마장")}</div><div class="m">${fmtDate(v.date)} · ${hs.length}마리</div>${hs.length?`<div class="vchips">${hs.map(h=>`<span>${esc(hLabel(h))}</span>`).join("")}</div>`:""}${v.note?`<div class="b">${esc(v.note)}</div>`:""}</button>`;
     }).join(""):`<div class="empty">방문한 승마장과 장제한 말을 기록해 보세요<br><small>승마장 이름 · 날짜 · 말 이름만 넣으면 돼요</small></div>`}`;
 }
 function editVisit(v){
   const isNew=!v;
   v=v||{ id:uid(), date:ymd(), place:"", horses:[], note:"", createdAt:Date.now() };
-  draftHorses=[...(v.horses||[])];
+  draftHorses=(v.horses||[]).map(hObj);
   const places=freq(S.visits.map(x=>x.place)).slice(0,8);
   openSheet(`${head(isNew?"방문 기록":"방문 편집",`<button class="link" data-act="saveVisit" data-id="${v.id}">저장</button>`)}
     <label class="f">날짜</label><input class="in-f" type="date" id="vDate" value="${esc(v.date)}">
     <label class="f">승마장 이름</label><input class="in-f" id="vPlace" value="${esc(v.place)}" placeholder="예: 이천 OO승마장">
     ${places.length?`<div class="vchips tap" style="margin-top:8px">${places.map(p=>`<button data-act="pickPlace" data-id="${esc(p)}">${esc(p)}</button>`).join("")}</div>`:""}
     <label class="f">장제한 말 <span id="vCnt"></span></label>
-    <div class="row" style="gap:8px"><input class="in-f" id="vHorse" list="hnl" placeholder="말 이름 입력 후 추가" style="flex:1" autocomplete="off"><button class="btn" data-act="addHorse" style="flex:0 0 auto">추가</button></div>
-    <datalist id="hnl">${freq(S.visits.flatMap(x=>x.horses||[])).map(h=>`<option value="${esc(h)}">`).join("")}</datalist>
+    <div class="row" style="gap:8px"><input class="in-f" id="vHorse" list="hnl" placeholder="말 이름" style="flex:1" autocomplete="off"><button class="btn" data-act="addHorse" style="flex:0 0 auto">추가</button></div>
+    <div class="row" style="gap:8px;margin-top:8px"><input class="in-f" id="vSize" list="szl" placeholder="편자 (예: 프론트 3)" style="flex:1;min-width:0" autocomplete="off"><input class="in-f" id="vCond" list="cdl" placeholder="발 상태" style="flex:1.4;min-width:0" autocomplete="off"></div>
+    <div id="szc" style="margin-top:8px"></div>
+    <div class="vchips tap" style="margin-top:8px">${[...new Set(["정상","갈라짐","마름","깨짐","무름",...freq(allHorses().map(h=>h.cond))])].slice(0,10).map(c=>`<button data-act="pickCond" data-id="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+    <datalist id="hnl">${freq(allHorses().map(h=>h.n)).map(h=>`<option value="${esc(h)}">`).join("")}</datalist>
+    <datalist id="szl">${freq(allHorses().map(h=>h.size)).map(h=>`<option value="${esc(h)}">`).join("")}</datalist>
+    <datalist id="cdl">${freq(allHorses().map(h=>h.cond)).map(h=>`<option value="${esc(h)}">`).join("")}</datalist>
     <div class="vchips" id="vHorses" style="margin-top:10px"></div>
     <div class="vchips tap" id="vSug" style="margin-top:8px"></div>
     <label class="f">메모 (선택)</label><textarea class="in-f" id="vNote" placeholder="예: 앞발 편자 교체, 뒷발 삭제만">${esc(v.note||"")}</textarea>
     ${!isNew?`<button class="btn danger block" style="margin-top:22px" data-act="askDel" data-col="visits" data-id="${v.id}">기록 삭제</button><div id="cf"></div>`:""}`);
-  sheetCtx={ col:"visits", obj:v }; drawHorses();
+  sheetCtx={ col:"visits", obj:v }; szTg="v"; szType=szNum=""; drawSizeChips(); drawHorses();
 }
 function drawHorses(){
   const box=$("#vHorses"); if(!box) return;
-  box.innerHTML=draftHorses.map((h,i)=>`<button class="x" data-act="delHorse" data-i="${i}">${esc(h)} ✕</button>`).join("");
+  box.innerHTML=draftHorses.map((h,i)=>`<span class="hc"><button data-act="editHorse" data-i="${i}">${esc(hLabel(h))}</button><button data-act="delHorse" data-i="${i}" aria-label="삭제">✕</button></span>`).join("");
   $("#vCnt").textContent=draftHorses.length?`(${draftHorses.length}마리)`:"";
-  const sug=freq(S.visits.flatMap(x=>x.horses||[])).filter(h=>!draftHorses.includes(h)).slice(0,10);
-  $("#vSug").innerHTML=sug.map(h=>`<button data-act="pickHorse" data-id="${esc(h)}">＋ ${esc(h)}</button>`).join("");
+  const have=new Set(draftHorses.map(h=>h.n));
+  $("#vSug").innerHTML=freq(allHorses().map(h=>h.n)).filter(n=>!have.has(n)).slice(0,10).map(h=>`<button data-act="pickHorse" data-id="${esc(h)}">＋ ${esc(h)}</button>`).join("");
 }
-function addHorseFromInput(){ const i=$("#vHorse"); if(!i) return; const n=i.value.trim(); if(n && !draftHorses.includes(n)) draftHorses.push(n); i.value=""; drawHorses(); }
-document.addEventListener("keydown",e=>{ if(e.key==="Enter" && e.target?.id==="vHorse"){ e.preventDefault(); addHorseFromInput(); } });
+function addHorseFromInput(){
+  const i=$("#vHorse"); if(!i) return; const n=i.value.trim(); if(!n) return;
+  const h={n,size:$("#vSize").value.trim(),cond:$("#vCond").value.trim()};
+  const k=draftHorses.findIndex(x=>x.n===n); if(k>=0) draftHorses[k]=h; else draftHorses.push(h);
+  i.value=""; $("#vSize").value=""; $("#vCond").value=""; szType=szNum=""; drawSizeChips(); drawHorses();
+}
+document.addEventListener("keydown",e=>{ if(e.key==="Enter" && ["vHorse","vSize","vCond"].includes(e.target?.id)){ e.preventDefault(); addHorseFromInput(); } });
 
 /* ---------- 재고 ---------- */
 function renderStock(){
@@ -1804,13 +1825,14 @@ function editStock(x){
   x=x||{ id:uid(), name:"", cat:"편자", qty:0, min:0, createdAt:Date.now() };
   const cats=[...new Set(["편자","편자못","도구","소모품","기타",...S.stock.map(y=>y.cat||"기타")])];
   openSheet(`${head(isNew?"품목 추가":"품목 편집",`<button class="link" data-act="saveStock" data-id="${x.id}">저장</button>`)}
-    <label class="f">품목 이름</label><input class="in-f" id="sName" value="${esc(x.name)}" placeholder="예: 편자 앞발 2호">
+    <label class="f">품목 이름</label><input class="in-f" id="sName" value="${esc(x.name)}" placeholder="예: 편자 프론트 3">
+    <div id="szc" style="margin-top:8px"></div>
     <label class="f">분류</label><input class="in-f" id="sCat" list="scl" value="${esc(x.cat||"")}"><datalist id="scl">${cats.map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
     <div class="vchips tap" style="margin-top:8px">${cats.slice(0,6).map(c=>`<button data-act="pickCat" data-id="${esc(c)}">${esc(c)}</button>`).join("")}</div>
     <label class="f">현재 수량</label><input class="in-f" type="number" inputmode="numeric" min="0" id="sQty" value="${x.qty||0}">
     <label class="f">부족 기준 (이 수량 이하면 '부족' 표시, 0이면 끔)</label><input class="in-f" type="number" inputmode="numeric" min="0" id="sMin" value="${x.min||0}">
     ${!isNew?`<button class="btn danger block" style="margin-top:22px" data-act="askDel" data-col="stock" data-id="${x.id}">품목 삭제</button><div id="cf"></div>`:""}`);
-  sheetCtx={ col:"stock", obj:x };
+  sheetCtx={ col:"stock", obj:x }; szTg="s"; szType=szNum=""; drawSizeChips();
 }
 /* card */
 function editCard(c){
@@ -1995,7 +2017,11 @@ document.addEventListener("click", async e=>{
     case "openVisit": return editVisit(S.visits.find(x=>x.id===d.id));
     case "pickPlace": $("#vPlace").value=d.id; return;
     case "addHorse": return addHorseFromInput();
-    case "pickHorse": if(!draftHorses.includes(d.id)) draftHorses.push(d.id); return drawHorses();
+    case "pickHorse": { const l=[...allHorses()].find(h=>h.n===d.id)||{}; $("#vHorse").value=d.id; $("#vSize").value=l.size||""; $("#vCond").value=""; return $("#vCond").focus(); }
+    case "pickType": szType=szType===d.id?"":d.id; return syncSize();
+    case "pickNum": szNum=szNum===d.id?"":d.id; return syncSize();
+    case "pickCond": $("#vCond").value=d.id; return;
+    case "editHorse": { const h=draftHorses.splice(+d.i,1)[0]; drawHorses(); $("#vHorse").value=h.n; $("#vSize").value=h.size; $("#vCond").value=h.cond; parseSize(h.size); drawSizeChips(); return; }
     case "delHorse": draftHorses.splice(+d.i,1); return drawHorses();
     case "saveVisit": {
       addHorseFromInput();
@@ -2117,7 +2143,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.14-1";
+const APP_VERSION="2026.11.14-3";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
