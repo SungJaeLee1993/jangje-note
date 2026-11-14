@@ -133,6 +133,9 @@ h1{font-size:32px;letter-spacing:-.03em;margin:0;font-weight:800;line-height:1.1
 .vrow{display:flex;gap:8px;margin-top:4px}.vtg{padding:10px 16px;border-radius:14px;background:#fff;border:1.5px solid #E3E5EA;font-size:14px;font-weight:700;color:var(--ink)}.vtg.on{background:#2B2B2B;color:#fff;border-color:#2B2B2B}
 .vlast{background:#fff;border-radius:14px;padding:11px 14px;font-size:12px;color:#8a909c;margin-bottom:10px}.vlast b{display:block;color:var(--ink);font-size:14px;margin-top:3px}
 .vstk{background:#FFF1F0;color:#C0392B;border-radius:14px;padding:11px 14px;font-weight:700;font-size:13px;margin-top:12px;line-height:1.5}.vtab{background:#fff;border-radius:16px;overflow:hidden}.vtab tr[data-act]{cursor:pointer}.vtab th:first-child,.vtab td:first-child{padding-left:12px}
+.act{display:flex;gap:14px;align-items:center;width:100%;text-align:left;background:#fff;border-radius:20px;padding:18px;margin-bottom:12px;border:1.5px solid #E3E5EA}.act .ic{font-size:30px}.act b{font-size:17px}.act p{font-size:13px;color:#8a909c;margin-top:2px}
+.qrow{background:#fff;border-radius:16px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px;border:2px solid transparent}.qrow.hl{border-color:#2B2B2B}.qn{width:62px}.qn b{font-size:16px}.qn small{display:block;font-size:10px;color:#8a909c;margin-top:1px}
+.qrow .st{display:flex;align-items:center;gap:2px;flex:1;justify-content:center;background:#F4F5F8;border-radius:12px;height:44px}.qrow .st b{font-size:15px;min-width:44px;text-align:center}.qrow .st b em{font-style:normal;font-size:11px;color:#8a909c;margin-left:2px}.qrow .st button{width:28px;height:40px;background:none;color:#8a909c;font-size:18px}
 .big[disabled]{opacity:.35}
 .stk{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 18px}
 .item.stk .nm{flex:1;min-width:0;text-align:left}
@@ -141,7 +144,8 @@ h1{font-size:32px;letter-spacing:-.03em;margin:0;font-weight:800;line-height:1.1
 .chips2.br button{font-size:13px;padding:6px 12px}
 .alert{background:#FFF1F0;border:1px solid #FFD4CF;color:#C0392B;border-radius:14px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px;margin-bottom:10px}.alert button{background:#C0392B;color:#fff;border:0;border-radius:10px;padding:7px 12px;font-weight:700;font-size:13px}
 #view .card .hd,#view .card .r{display:grid;grid-template-columns:38px 1fr 1fr 1fr;gap:6px;align-items:center}#view .card .hd{font-size:12px;color:#8a909c;font-weight:700;text-align:center;margin-bottom:6px}#view .card .r{margin-bottom:6px}.r .n{font-weight:800;font-size:14px}
-.c{background:#F4F5F8;border-radius:12px;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 2px}.c b{font-size:17px}.c button{width:26px;height:40px;background:none;color:#9AA0AB;font-size:15px}.c.low{background:#FFF1F0}.c.low b{color:#C0392B}.c.zero b{color:#C8CCD4}
+.c{background:#F4F5F8;border-radius:12px;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 2px}.c b{font-size:17px}.c button{width:26px;height:40px;background:none;color:#9AA0AB;font-size:15px}.c.wh{height:68px;flex-direction:column;justify-content:center;gap:2px;padding:0 2px}.c.wh .ln{display:flex;align-items:center;justify-content:space-between;width:100%}.c.wh b{font-size:15px}.c.wh b em{font-style:normal;font-size:10px;font-weight:600;color:#8a909c;margin-left:2px}.c.wh button{height:30px;width:24px}
+.c.low{background:#FFF1F0}.c.low b{color:#C0392B}.c.zero b{color:#C8CCD4}
 .card .t{font-size:15px;font-weight:800;margin:2px 4px 10px;display:flex;justify-content:space-between;align-items:center}.card .t small{font-weight:600;color:#8a909c;font-size:12px}
 .nails{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.nl{background:#F4F5F8;border-radius:10px;padding:6px 0 2px;text-align:center}.nl span{display:block;font-size:11px;color:#8a909c;font-weight:700}.nl b{font-size:14px}.nl.low{background:#FFF1F0}.nl.low b{color:#C0392B}.nl.zero b{color:#C8CCD4}.nb{display:flex;justify-content:space-around}.nb button{width:50%;height:34px;background:none;color:#9AA0AB;font-size:14px}
 .card .note{font-size:12px;color:#8a909c;margin:8px 4px 0}
@@ -1132,7 +1136,7 @@ function renderTimer(){
 function quickAdd(){
   if(tab==="notes") return editNote();
   if(tab==="logs" && logSub==="visits") return editVisit();
-  if(tab==="logs" && logSub==="stock") return editStock();
+  if(tab==="logs" && logSub==="stock") return ls.get("fn_stkTab","편자")==="기타"?editStock():stockWizard();
   if(tab==="logs") return editLog(logDay?{ id:uid(), date:logDay, title:"", place:"", mentor:"", horse:"", did:"", learned:"", next:"", photos:[], createdAt:Date.now() }:null);
   if(tab==="cards" && !review && !quiz) return studyMode==="cards" ? editCard() : editQuestion();
   if(tab==="todos") return todoView==="sch" ? editEvent() : editTodo();
@@ -1890,7 +1894,8 @@ document.addEventListener("keydown",e=>{ if(e.key==="Enter" && e.target?.id==="v
 /* ---------- 재고 ---------- */
 const SZ=[1,2,3,4,5,6,7], KINDS=["프론트","사이드","하인드"], NAILS=["E2","E3","E4","E5","E6","E7","E8"];
 const stkMin=()=>+ls.get("fn_stkMin",2), nailMin=()=>+ls.get("fn_nailMin",20);
-const stkLow=x=>x.kind?(x.checked||x.qty)&&(x.qty||0)<=(x.kind==="못"?nailMin():stkMin()):((x.min||0)>0&&(x.qty||0)<=x.min);
+const boxSz=b=>+ls.get("fn_box_"+b,10), tot=x=>(x.qty||0)+(x.box||0)*boxSz(x.brand);
+const stkLow=x=>x.kind?(x.checked||x.qty||x.box)&&tot(x)<=(x.kind==="못"?nailMin():stkMin()):((x.min||0)>0&&(x.qty||0)<=x.min);
 const LOCS=["창고","차량"], curLoc=()=>ls.get("fn_stkLoc","창고");
 const stkFind=(b,k,s,l=curLoc())=>S.stock.find(x=>x.brand===b&&x.kind===k&&String(x.size)===String(s)&&(x.loc||"창고")===l);
 const stkUnit=x=>x.kind==="못"?"개":x.kind?"켤레":"개";
@@ -1899,9 +1904,10 @@ function renderStock(){
   const brands=[...new Set(S.stock.filter(x=>x.brand).map(x=>x.brand))]; if(!brands.length) brands.push("기본");
   let br=ls.get("fn_stkBrand",brands[0]); if(!brands.includes(br)){ br=brands[0]; }
   const low=S.stock.filter(stkLow), zero=low.filter(x=>!(x.qty||0));
-  const loc=curLoc(); const cell=(k,sz)=>{ const x=stkFind(br,k,sz), q=x?x.qty||0:0, cl=!x?"zero":stkLow(x)?"low":(q?"":"zero"); return `<div class="c ${cl}"><button data-act="mx" data-b="${esc(br)}" data-l="${loc}" data-k="${k}" data-s="${sz}" data-delta="-1" aria-label="줄이기">−</button><b>${q}</b><button data-act="mx" data-b="${esc(br)}" data-l="${loc}" data-k="${k}" data-s="${sz}" data-delta="1" aria-label="늘리기">＋</button></div>`; };
+  const loc=curLoc(); const cell=(k,sz)=>{ const x=stkFind(br,k,sz), q=x?x.qty||0:0, bx=x?x.box||0:0, cl=!x?"zero":stkLow(x)?"low":((q||bx)?"":"zero"); const bt=(f,dl,t)=>`<button data-act="mx" data-b="${esc(br)}" data-l="${loc}" data-k="${k}" data-s="${sz}" data-f="${f}" data-delta="${dl}">${t}</button>`;
+    return loc==="창고" ? `<div class="c wh ${cl}"><div class="ln">${bt("box",-1,"−")}<b>${bx}<em>박스</em></b>${bt("box",1,"＋")}</div><div class="ln">${bt("qty",-1,"−")}<b>${q}<em>켤레</em></b>${bt("qty",1,"＋")}</div></div>` : `<div class="c ${cl}">${bt("qty",-1,"−")}<b>${q}</b>${bt("qty",1,"＋")}</div>`; };
   const legacy=S.stock.filter(x=>!x.kind); let last=null;
-  const body = tab==="편자" ? `<div class="card"><div class="t">${esc(br)} · ${loc} <small data-act="setMin">${stkMin()}켤레 이하면 빨강 ✎</small></div>
+  const body = tab==="편자" ? `<div class="card"><div class="t">${esc(br)} · ${loc} <small data-act="setMin">${stkMin()}켤레 이하면 빨강 ✎</small></div>${loc==="창고"?`<div class="note" style="margin:-4px 4px 8px"><span data-act="setBox" data-b="${esc(br)}">1박스 = ${boxSz(br)}켤레 ✎</span> · 박스 + 낱켤레</div>`:""}
       <div class="hd"><span></span>${KINDS.map(k=>`<span>${k}</span>`).join("")}</div>
       ${SZ.map(n=>`<div class="r"><div class="n">${n}호</div>${KINDS.map(k=>cell(k,n)).join("")}</div>`).join("")}</div>`
     : tab==="못" ? `<div class="card"><div class="t">${esc(br)} 못 · ${loc} <small data-act="setNailMin">${nailMin()}개 이하면 빨강 ✎</small></div>
@@ -1912,10 +1918,79 @@ function renderStock(){
     }).join(""):`<div class="empty">도구·소모품 등 기타 재고를 기록해 보세요</div>`}`;
   $("#view").innerHTML=`
     <div class="chips2">${["편자","못","기타"].map(t=>`<button class="${tab===t?"on":""}" data-act="stkTab" data-id="${t}">${t==="기타"?"도구·소모품":t}</button>`).join("")}</div>
-    ${tab!=="기타"?`<div class="chips2 loc">${LOCS.map(l=>`<button class="${l===loc?"on":""}" data-act="stkLoc" data-id="${l}">${l==="창고"?"🏠 창고":"🚗 차량"}<i>${S.stock.filter(x=>x.kind&&(x.loc||"창고")===l&&x.brand===br&&(tab==="못"?x.kind==="못":x.kind!=="못")).reduce((a,x)=>a+(x.qty||0),0)}</i></button>`).join("")}</div>
+    ${tab!=="기타"?`<div class="chips2 loc">${LOCS.map(l=>`<button class="${l===loc?"on":""}" data-act="stkLoc" data-id="${l}">${l==="창고"?"🏠 창고":"🚗 차량"}<i>${S.stock.filter(x=>x.kind&&(x.loc||"창고")===l&&x.brand===br&&(tab==="못"?x.kind==="못":x.kind!=="못")).reduce((a,x)=>a+tot(x),0)}</i></button>`).join("")}</div>
     <div class="chips2 br">${brands.map(b=>`<button class="${b===br?"on":""}" data-act="stkBrand" data-id="${esc(b)}">${esc(b)}</button>`).join("")}<button data-act="addBrand">＋ 브랜드</button></div>`:""}
     ${low.length?`<div class="alert"><span>⚠ 부족 ${low.length-zero.length}종${zero.length?` · 품절 ${zero.length}종`:""}</span><button data-act="copyLow">목록 복사</button></div>`:""}
     ${body}`;
+}
+/* ===== 재고 입력: 4단계 (작업 → 브랜드·종류 → 호수별 수량 → 확인) ===== */
+let SW=null;
+const SWACT={in:["📦","입고","새로 샀어요 · 창고에 추가"],load:["🚗","차량에 싣기","창고 → 차량으로 옮기기"],count:["🔍","재고 세기","실제 개수로 맞추기"]};
+function swSizes(){ return SW.kind==="못"?NAILS:SZ.map(String); }
+function swRec(sz,loc){ return stkFind(SW.brand,SW.kind,sz,loc); }
+function stockWizard(){
+  const bs=stockBrands(); SW={ step:1, act:"in", brand:useBrand(), kind:"프론트", loc:"창고", v:{} };
+  openSheet(`<div id="sw"></div>`); $("#sheet").classList.add("hasfoot"); swRender();
+}
+function swCalc(sz){ // 변화 계산 → {rec, before:{box,q}, after:{box,q}, car:{before,after}}
+  const w=swRec(sz,"창고")||{box:0,qty:0}, c=swRec(sz,"차량")||{qty:0}, d=SW.v[sz]||{box:0,q:0}, bs=boxSz(SW.brand), nail=SW.kind==="못";
+  const wb={box:w.box||0,q:w.qty||0}, cb={q:c.qty||0};
+  if(SW.act==="in") return { wh:{box:wb.box+d.box,q:wb.q+d.q}, car:cb, wb, cb, ch:d.box||d.q };
+  if(SW.act==="load"){ const totW=wb.box*bs+wb.q, mv=Math.min(totW,d.box*bs+d.q); const rest=totW-mv; return { wh:nail?{box:0,q:rest}:{box:Math.floor(rest/bs),q:rest%bs}, car:{q:cb.q+mv}, wb, cb, ch:mv, mv }; }
+  if(SW.loc==="창고") return { wh:{box:d.box,q:d.q}, car:cb, wb, cb, ch:(d.box!==wb.box||d.q!==wb.q)?1:0 };
+  return { wh:wb, car:{q:d.q}, wb, cb, ch:d.q!==cb.q?1:0 };
+}
+function swRender(){
+  const st=SW.step; let body="", foot="";
+  const hd=`<div class="shead"><button class="link" data-act="${st>1?"swBack":"close"}">${st>1?"‹ 이전":"닫기"}</button><h3>재고</h3><span class="vwn">${st} / 4</span></div><div class="vprog">${[1,2,3,4].map(i=>`<i class="${i<=st?"on":""}"></i>`).join("")}</div>`;
+  const nail=SW.kind==="못", unit=nail?"개":"켤레";
+  if(st===1){
+    body=`<h2 class="vh2">무엇을 할까요?</h2><div class="vsub">하나를 누르면 바로 다음 단계예요</div>`+Object.entries(SWACT).map(([k,[ic,t,p]])=>`<button class="act" data-act="swAct" data-id="${k}"><span class="ic">${ic}</span><div><b>${t}</b><p>${p}</p></div></button>`).join("");
+  } else if(st===2){
+    const bs=stockBrands(); if(!bs.includes(SW.brand)) bs.push(SW.brand);
+    body=`<h2 class="vh2">${SW.act==="count"?"무엇을 셀까요?":"어떤 것이에요?"}</h2><div class="vsub">마지막에 쓴 브랜드가 미리 선택돼 있어요</div>
+      <div class="vsec">브랜드</div><div class="vch">${bs.map(b=>`<button class="${b===SW.brand?"on":""}" data-act="swBrand" data-id="${esc(b)}">${esc(b)}</button>`).join("")}<button data-act="swNewBrand">＋ 브랜드</button></div>
+      <div class="vsec">종류</div><div class="vch">${["프론트","사이드","하인드","못"].map(k=>`<button class="${k===SW.kind?"on":""}" data-act="swKind" data-id="${k}">${k}</button>`).join("")}</div>
+      ${SW.act==="count"?`<div class="vsec">어디 재고예요?</div><div class="vch">${LOCS.map(l=>`<button class="${l===SW.loc?"on":""}" data-act="swLoc" data-id="${l}">${l==="창고"?"🏠 창고":"🚗 차량"}</button>`).join("")}</div>`:""}`;
+    foot=`<button class="btn block big" data-act="swNext">다음</button>`;
+  } else if(st===3){
+    const bs=boxSz(SW.brand), cnt=SW.act==="count", ld=SW.act==="load", wh=cnt&&SW.loc==="차량"?false:true;
+    const stp=(sz,f,val,unitLab)=>`<div class="st"><button data-act="swStep" data-s="${sz}" data-f="${f}" data-delta="-1">−</button><b>${val}<em>${unitLab}</em></b><button data-act="swStep" data-s="${sz}" data-f="${f}" data-delta="1">＋</button></div>`;
+    const title={in:"들어온 수량",load:"차량에 실을 수량",count:"실제 개수"}[SW.act];
+    body=`<h2 class="vh2">호수별 ${title}</h2><div class="vsub">${esc(SW.brand)} ${SW.kind}${nail?"":(SW.loc==="창고"||!cnt?` · 1박스 = ${bs}켤레`:"")}${nail?" · 탭하면 ±10개":""} · 해당하는 호수만 누르세요</div>`+swSizes().map(sz=>{
+      const d=SW.v[sz]||{box:0,q:0}, w=swRec(sz,"창고"), c=swRec(sz,"차량"), has=(d.box||d.q);
+      const hint=SW.act==="load"?`창고 ${w?(w.box||0)+"박스 + "+(w.qty||0):"0"}`:(cnt?"":(w?`창고 ${(w.box||0)}박스 + ${w.qty||0}`:""));
+      const boxCtl=(!nail&&((SW.act!=="count")||SW.loc==="창고"))?stp(sz,"box",d.box,"박스"):"";
+      return `<div class="qrow ${has?"hl":""}"><div class="qn"><b>${nail?sz:sz+"호"}</b>${hint?`<small>${hint}</small>`:""}</div>${boxCtl}${stp(sz,"q",d.q,unit)}</div>`;
+    }).join("");
+    foot=`<button class="btn block big" data-act="swNext">다음</button>`;
+  } else {
+    const rows=swSizes().map(sz=>({sz,c:swCalc(sz)})).filter(r=>SW.act==="count"?r.c.ch:(SW.v[r.sz]&&(SW.v[r.sz].box||SW.v[r.sz].q)));
+    const fmt=o=>nail?`${o.q}개`:(o.box!==undefined?`${o.box}박스 + ${o.q}`:`${o.q}`);
+    const chg=r=>{ const d=SW.v[r.sz]; if(SW.act==="in") return `＋${d.box?d.box+"박스 ":""}${d.q?d.q+unit:""}`.trim(); if(SW.act==="load") return `🚗 +${r.c.mv}${unit}`; return "맞춤"; };
+    const res=r=>SW.act==="load"?`창고 ${fmt(r.c.wh)} · 차량 ${r.c.car.q}`:(SW.act==="count"&&SW.loc==="차량"?`차량 ${r.c.car.q}`:`창고 ${fmt(r.c.wh)}`);
+    body=`<h2 class="vh2">이대로 ${SW.act==="in"?"입고":SW.act==="load"?"옮길":"맞출"}까요?</h2><div class="vsub">${esc(SW.brand)} ${SW.kind} · ${SWACT[SW.act][1]}</div>
+      <table class="htb vtab"><thead><tr><th>품목</th><th>변화</th><th>결과</th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr><td>${nail?r.sz:r.sz+"호"}</td><td>${esc(chg(r))}</td><td>${esc(res(r))}</td></tr>`).join(""):`<tr><td colspan="3">바뀐 항목이 없어요</td></tr>`}</tbody></table>`;
+    foot=`<button class="btn block big" data-act="swSave" ${rows.length?"":"disabled"}>저장</button>`;
+    SW.rows=rows.map(r=>r.sz);
+  }
+  $("#sw").innerHTML=hd+body+(foot?`<div class="sfoot">${foot}</div>`:"");
+}
+function swInit(){ // 재고 세기: 현재 값으로 시작
+  SW.v={}; if(SW.act!=="count") return;
+  swSizes().forEach(sz=>{ const r=swRec(sz,SW.loc); SW.v[sz]=r?{box:r.box||0,q:r.qty||0}:{box:0,q:0}; });
+}
+async function swSave(){
+  const nail=SW.kind==="못"; let n=0;
+  for(const sz of SW.rows){ const c=swCalc(sz);
+    const upd=async(loc,fields)=>{ let x=swRec(sz,loc); if(!x) x={id:uid(),cat:nail?"못":"편자",brand:SW.brand,loc,kind:SW.kind,size:sz,name:nail?`${SW.brand} 못 ${sz}`:`${SW.brand} ${SW.kind} ${sz}호`,qty:0,min:0,createdAt:Date.now()}; await put("stock",{...x,...fields,checked:ymd()}); };
+    if(SW.act==="in"){ await upd("창고",{box:c.wh.box,qty:c.wh.q}); }
+    else if(SW.act==="load"){ await upd("창고",{box:c.wh.box,qty:c.wh.q}); await upd("차량",{qty:c.car.q}); }
+    else if(SW.loc==="창고") await upd("창고",{box:c.wh.box,qty:c.wh.q});
+    else await upd("차량",{qty:c.car.q});
+    n++; }
+  ls.set("fn_stkBrand",SW.brand); ls.set("fn_stkTab",nail?"못":"편자");
+  closeSheet(); toast(`저장했어요 · ${n}개 항목`);
 }
 function editStock(x){
   const isNew=!x;
@@ -2167,16 +2242,26 @@ document.addEventListener("click", async e=>{
       closeSheet(); await put("visits",v); const n=await adjustStock(b,old.use,b,use);
       return toast(n?`저장했어요 · 차량 편자 −${n}켤레`:"저장했어요");
     }
+    case "setBox": { const v=parseInt(prompt("한 박스에 몇 켤레예요?",boxSz(d.b))); if(!(v>0)) return; ls.set("fn_box_"+d.b,v); return renderStock(); }
+    case "swAct": SW.act=d.id; swInit(); SW.step=2; return swRender();
+    case "swBrand": SW.brand=d.id; return swRender();
+    case "swNewBrand": { const n=(prompt("브랜드 이름 (예: MUSTAD)")||"").trim(); if(n){ SW.brand=n; } return swRender(); }
+    case "swKind": SW.kind=d.id; return swRender();
+    case "swLoc": SW.loc=d.id; return swRender();
+    case "swNext": { if(SW.step===2) swInit(); SW.step++; $("#sheet").scrollTop=0; return swRender(); }
+    case "swBack": SW.step--; $("#sheet").scrollTop=0; return swRender();
+    case "swStep": { const o=SW.v[d.s]||(SW.v[d.s]={box:0,q:0}); const nail=SW.kind==="못"; const dl=(+d.delta)*(d.f==="q"&&nail?10:1); const f=d.f==="box"?"box":"q"; o[f]=Math.max(0,(o[f]||0)+dl); return swRender(); }
+    case "swSave": return swSave();
     case "stkLoc": ls.set("fn_stkLoc",d.id); return renderStock();
     case "stkTab": ls.set("fn_stkTab",d.id); return renderStock();
     case "stkBrand": ls.set("fn_stkBrand",d.id); return renderStock();
     case "addBrand": { const n=(prompt("브랜드 이름 (예: MUSTAD)")||"").trim(); if(!n) return; ls.set("fn_stkBrand",n); await put("stock",{id:uid(),cat:"편자",brand:n,kind:"프론트",size:"1",name:`${n} 프론트 1호`,qty:0,min:0,createdAt:Date.now()}); return; }
     case "setMin": { const v=parseInt(prompt("몇 켤레 이하면 부족으로 표시할까요?",stkMin())); if(isNaN(v)||v<0) return; ls.set("fn_stkMin",v); return renderStock(); }
     case "setNailMin": { const v=parseInt(prompt("몇 개 이하면 부족으로 표시할까요?",nailMin())); if(isNaN(v)||v<0) return; ls.set("fn_nailMin",v); return renderStock(); }
-    case "mx": { let x=stkFind(d.b,d.k,d.s,d.l); if(!x) x={id:uid(),cat:d.k==="못"?"못":"편자",brand:d.b,loc:d.l,kind:d.k,size:d.s,name:d.k==="못"?`${d.b} 못 ${d.s}`:`${d.b} ${d.k} ${d.s}호`,qty:0,min:0,createdAt:Date.now()}; buzz(6); return put("stock",{...x,qty:Math.max(0,(x.qty||0)+(+d.delta)),checked:ymd()}); }
+    case "mx": { let x=stkFind(d.b,d.k,d.s,d.l); if(!x) x={id:uid(),cat:d.k==="못"?"못":"편자",brand:d.b,loc:d.l,kind:d.k,size:d.s,name:d.k==="못"?`${d.b} 못 ${d.s}`:`${d.b} ${d.k} ${d.s}호`,qty:0,min:0,createdAt:Date.now()}; buzz(6); { const f=d.f==="box"?"box":"qty"; return put("stock",{...x,[f]:Math.max(0,(x[f]||0)+(+d.delta)),checked:ymd()}); } }
     case "stk": { const x=S.stock.find(y=>y.id===d.id); if(!x) return; buzz(6); return put("stock",{...x, qty:Math.max(0,(x.qty||0)+(+d.delta)), checked:ymd()}); }
     case "copyLow": {
-      const t=S.stock.filter(stkLow).map(x=>`- ${x.kind?(x.loc||"창고")+" ":""}${x.name} (현재 ${x.qty||0}${stkUnit(x)})`).join("\n");
+      const t=S.stock.filter(stkLow).map(x=>`- ${x.kind?(x.loc||"창고")+" ":""}${x.name} (현재 ${x.box?x.box+"박스 + ":""}${x.qty||0}${stkUnit(x)})`).join("\n");
       try{ await navigator.clipboard.writeText("부족한 재고\n"+t); toast("복사했어요"); }catch(e){ toast("복사 실패"); } return;
     }
     case "askDel": $("#cf").innerHTML=`<div class="confirm"><button class="btn line block" data-act="cancelDel">취소</button><button class="btn block" style="background:var(--bad)" data-act="doDel" data-col="${d.col}" data-id="${d.id}">정말 삭제</button></div>`; return;
@@ -2280,7 +2365,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.15-12";
+const APP_VERSION="2026.11.15-13";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
