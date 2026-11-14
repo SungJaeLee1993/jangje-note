@@ -117,6 +117,7 @@ h1{font-size:32px;letter-spacing:-.03em;margin:0;font-weight:800;line-height:1.1
 .htb tr:last-child td{border-bottom:0}.htb i{font-style:normal;font-size:10px;background:var(--primary);color:#fff;border-radius:99px;padding:1px 6px;margin-left:4px;vertical-align:1px}
 .vchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .vchips span,.vchips button{background:#EEF0F4;border-radius:99px;padding:5px 11px;font-size:13px;font-weight:600;color:var(--ink)}
+.pro{flex:0 0 auto;border:1.5px solid #D9DCE3;background:#fff;color:var(--ink);border-radius:14px;padding:0 14px;height:48px;font-size:14px;font-weight:700}.pro.on{background:var(--primary);color:#fff;border-color:var(--primary)}
 .shr{display:flex;align-items:center;gap:8px;margin-top:6px}.shr>span{flex:0 0 74px;font-size:12px;color:var(--sub,#6b7280)}
 .vchips.tap button.on{background:var(--primary);color:#fff;box-shadow:none}
 .vchips.tap button{background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line);color:var(--sub2)}
@@ -1754,7 +1755,7 @@ function syncSize(){ const v=[szType,szNum].filter(Boolean).join(" "); $("#sName
 function parseSize(z){ const m=String(z||"").match(/(프론트|사이드|하인드)?\s*(\d)?/); szType=m?.[1]||""; szNum=m?.[2]||""; }
 let shF="", shH="", shPro=false, shSide=false;
 const nums=[1,2,3,4,5,6,7];
-function drawShoe(){ const c=$("#shoe"); if(!c) return; const row=(lab,key,cur)=>`<div class="shr"><span>${lab}</span><div class="vchips tap">${nums.map(n=>`<button class="${cur==n?"on":""}" data-act="pickShoe" data-k="${key}" data-id="${n}">${n}</button>`).join("")}${key==="F"?`<button class="${shSide?"on":""}" data-act="toggleSide">사이드</button>`:""}</div></div>`; c.innerHTML=row("앞발 (프론트)","F",shF)+(shPro?`<div class="shr"><span>뒷발</span><em style="font-size:13px;color:#8a909c;font-style:normal">선수말은 앞발만 장제</em></div>`:row("뒷발 (하인드)","H",shH))+`<div class="vchips tap" style="margin-top:6px"><button class="${shPro?"on":""}" data-act="togglePro">선수말 편자</button></div>`; }
+function drawShoe(){ const c=$("#shoe"); if(!c) return; const row=(lab,key,cur)=>`<div class="shr"><span>${lab}</span><div class="vchips tap">${nums.map(n=>`<button class="${cur==n?"on":""}" data-act="pickShoe" data-k="${key}" data-id="${n}">${n}</button>`).join("")}${key==="F"?`<button class="${shSide?"on":""}" data-act="toggleSide">사이드</button>`:""}</div></div>`; c.innerHTML=row("앞발 (프론트)","F",shF)+(shPro?`<div class="shr"><span>뒷발</span><em style="font-size:13px;color:#8a909c;font-style:normal">선수말은 앞발만 장제</em></div>`:row("뒷발 (하인드)","H",shH)); const pb=$("#proBtn"); if(pb) pb.classList.toggle("on",shPro); }
 const hObj=h=>typeof h==="string"?{n:h,front:"",hind:"",pro:false,side:false,size:"",cond:""}:{n:h.n||"",front:h.front||"",hind:h.hind||"",pro:!!h.pro,side:!!h.side,size:h.size||"",cond:h.cond||""};
 const hLabel=h=>{ h=hObj(h); const sh=[h.front||h.side?"앞 "+[h.front,h.side?"사이드":""].filter(Boolean).join(" "):"",h.hind?"뒤 "+h.hind:""].filter(Boolean).join("/"); return [h.n,h.pro?"선수말":"",sh,/^\d+$/.test(h.size)?h.size+"호":h.size,h.cond].filter(Boolean).join(" · "); };
 const allHorses=()=>S.visits.flatMap(x=>(x.horses||[]).map(hObj));
@@ -1791,10 +1792,11 @@ function editVisit(v){
     <label class="f">장제한 말 <span id="vCnt"></span></label>
     <div class="vchips tap" id="vSug" style="margin:0 0 10px"></div>
     <div class="vchips" id="vHorses" style="margin:0 0 10px"></div>
-    <div class="row" style="gap:8px"><input class="in-f" id="vHorse" list="hnl" placeholder="말 이름" style="flex:1" autocomplete="off"><button class="btn" data-act="addHorse" style="flex:0 0 auto">추가</button></div>
+    <div class="row" style="gap:8px"><input class="in-f" id="vHorse" list="hnl" placeholder="말 이름" style="flex:1;min-width:0" autocomplete="off"><button class="pro" id="proBtn" data-act="togglePro">선수말</button></div>
     <div class="row" style="gap:8px;margin-top:8px"><input class="in-f" id="vCond" list="cdl" placeholder="발 상태" style="flex:1;min-width:0" autocomplete="off"></div>
     <div id="shoe" style="margin-top:8px"></div>
     <div class="vchips tap" style="margin-top:8px">${[...new Set(["정상","갈라짐","마름","깨짐","무름",...freq(allHorses().map(h=>h.cond))])].slice(0,10).map(c=>`<button data-act="pickCond" data-id="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+    <button class="btn block" data-act="addHorse" style="margin-top:12px">＋ 이 말 추가</button>
     <datalist id="hnl">${freq(allHorses().map(h=>h.n)).map(h=>`<option value="${esc(h)}">`).join("")}</datalist>
     <datalist id="cdl">${freq(allHorses().map(h=>h.cond)).map(h=>`<option value="${esc(h)}">`).join("")}</datalist>
     <label class="f">메모 (선택)</label><textarea class="in-f" id="vNote" placeholder="예: 앞발 편자 교체, 뒷발 삭제만">${esc(v.note||"")}</textarea>
@@ -2160,7 +2162,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.15-3";
+const APP_VERSION="2026.11.15-5";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
