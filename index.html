@@ -1754,14 +1754,14 @@ function syncSize(){ const v=[szType,szNum].filter(Boolean).join(" "); $("#sName
 function parseSize(z){ const m=String(z||"").match(/(프론트|사이드|하인드)?\s*(\d)?/); szType=m?.[1]||""; szNum=m?.[2]||""; }
 let shF="", shH="", shPro=false, shSide=false;
 const nums=[1,2,3,4,5,6,7];
-function drawShoe(){ const c=$("#shoe"); if(!c) return; const row=(lab,key,cur)=>`<div class="shr"><span>${lab}</span><div class="vchips tap">${nums.map(n=>`<button class="${cur==n?"on":""}" data-act="pickShoe" data-k="${key}" data-id="${n}">${n}</button>`).join("")}${key==="F"?`<button class="${shSide?"on":""}" data-act="toggleSide">사이드</button>`:""}</div></div>`; c.innerHTML=row("앞발 (프론트)","F",shF)+row("뒷발 (하인드)","H",shH)+`<div class="vchips tap" style="margin-top:6px"><button class="${shPro?"on":""}" data-act="togglePro">선수말 편자</button></div>`; }
+function drawShoe(){ const c=$("#shoe"); if(!c) return; const row=(lab,key,cur)=>`<div class="shr"><span>${lab}</span><div class="vchips tap">${nums.map(n=>`<button class="${cur==n?"on":""}" data-act="pickShoe" data-k="${key}" data-id="${n}">${n}</button>`).join("")}${key==="F"?`<button class="${shSide?"on":""}" data-act="toggleSide">사이드</button>`:""}</div></div>`; c.innerHTML=row("앞발 (프론트)","F",shF)+(shPro?`<div class="shr"><span>뒷발</span><em style="font-size:13px;color:#8a909c;font-style:normal">선수말은 앞발만 장제</em></div>`:row("뒷발 (하인드)","H",shH))+`<div class="vchips tap" style="margin-top:6px"><button class="${shPro?"on":""}" data-act="togglePro">선수말 편자</button></div>`; }
 const hObj=h=>typeof h==="string"?{n:h,front:"",hind:"",pro:false,side:false,size:"",cond:""}:{n:h.n||"",front:h.front||"",hind:h.hind||"",pro:!!h.pro,side:!!h.side,size:h.size||"",cond:h.cond||""};
 const hLabel=h=>{ h=hObj(h); const sh=[h.front||h.side?"앞 "+[h.front,h.side?"사이드":""].filter(Boolean).join(" "):"",h.hind?"뒤 "+h.hind:""].filter(Boolean).join("/"); return [h.n,h.pro?"선수말":"",sh,/^\d+$/.test(h.size)?h.size+"호":h.size,h.cond].filter(Boolean).join(" · "); };
 const allHorses=()=>S.visits.flatMap(x=>(x.horses||[]).map(hObj));
 function freq(arr){ const m={}; arr.filter(Boolean).forEach(x=>m[x]=(m[x]||0)+1); return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(x=>x[0]); }
 function horseTable(hs){
   const R=hs.map(hObj);
-  return `<table class="htb"><thead><tr><th>말</th><th>앞</th><th>뒤</th><th>상태</th></tr></thead><tbody>${R.map(h=>`<tr><td>${esc(h.n)}${h.pro?` <i>선수</i>`:""}</td><td>${esc([h.front,h.side?"사이드":""].filter(Boolean).join(" ")||(h.size||"–"))}</td><td>${esc(h.hind||"–")}</td><td>${esc(h.cond||"–")}</td></tr>`).join("")}</tbody></table>`;
+  return `<table class="htb"><thead><tr><th>말</th><th>앞</th><th>뒤</th><th>상태</th></tr></thead><tbody>${R.map(h=>`<tr><td>${esc(h.n)}${h.pro?` <i>선수</i>`:""}</td><td>${esc([h.front,h.side?"사이드":""].filter(Boolean).join(" ")||(h.size||"–"))}</td><td>${esc(h.pro?"×":h.hind||"–")}</td><td>${esc(h.cond||"–")}</td></tr>`).join("")}</tbody></table>`;
 }
 function renderVisits(){
   const ym=ymd().slice(0,7), mv=S.visits.filter(v=>(v.date||"").startsWith(ym));
@@ -2031,7 +2031,7 @@ document.addEventListener("click", async e=>{
     case "pickHorse": { const l=[...allHorses()].find(h=>h.n===d.id)||{}; $("#vHorse").value=d.id; shF=l.front||""; shH=l.hind||""; shPro=!!l.pro; shSide=!!l.side; drawShoe(); $("#vCond").value=""; return $("#vCond").focus(); }
     case "pickShoe": { const k=d.k==="F"?"shF":"shH"; const cur=d.k==="F"?shF:shH; const nv=cur==d.id?"":d.id; if(d.k==="F") shF=nv; else shH=nv; return drawShoe(); }
     case "toggleSide": shSide=!shSide; return drawShoe();
-    case "togglePro": shPro=!shPro; return drawShoe();
+    case "togglePro": shPro=!shPro; if(shPro) shH=""; return drawShoe();
     case "pickType": szType=szType===d.id?"":d.id; return syncSize();
     case "pickNum": szNum=szNum===d.id?"":d.id; return syncSize();
     case "pickCond": $("#vCond").value=d.id; return;
@@ -2157,7 +2157,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.14-7";
+const APP_VERSION="2026.11.15-1";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
