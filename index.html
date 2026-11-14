@@ -1748,11 +1748,11 @@ const SZ_TYPES=["프론트","사이드","하인드"];
 function drawSizeChips(){ const c=$("#szc"); if(!c) return; c.innerHTML=`<div class="vchips tap">${SZ_TYPES.map(t=>`<button class="${szType===t?"on":""}" data-act="pickType" data-id="${t}">${t}</button>`).join("")}</div><div class="vchips tap" style="margin-top:6px">${[1,2,3,4,5,6,7].map(n=>`<button class="${szNum==n?"on":""}" data-act="pickNum" data-id="${n}">${n}</button>`).join("")}</div>`; }
 function syncSize(){ const v=[szType,szNum].filter(Boolean).join(" "); $("#sName").value=v?"편자 "+v:""; drawSizeChips(); }
 function parseSize(z){ const m=String(z||"").match(/(프론트|사이드|하인드)?\s*(\d)?/); szType=m?.[1]||""; szNum=m?.[2]||""; }
-let shF="", shH="", shPro=false;
+let shF="", shH="", shPro=false, shSide=false;
 const nums=[1,2,3,4,5,6,7];
-function drawShoe(){ const c=$("#shoe"); if(!c) return; const row=(lab,key,cur)=>`<div class="shr"><span>${lab}</span><div class="vchips tap">${nums.map(n=>`<button class="${cur==n?"on":""}" data-act="pickShoe" data-k="${key}" data-id="${n}">${n}</button>`).join("")}</div></div>`; c.innerHTML=row("앞발 (프론트)","F",shF)+row("뒷발 (하인드)","H",shH)+`<div class="vchips tap" style="margin-top:6px"><button class="${shPro?"on":""}" data-act="togglePro">선수말 편자</button></div>`; }
-const hObj=h=>typeof h==="string"?{n:h,front:"",hind:"",pro:false,size:"",cond:""}:{n:h.n||"",front:h.front||"",hind:h.hind||"",pro:!!h.pro,size:h.size||"",cond:h.cond||""};
-const hLabel=h=>{ h=hObj(h); const sh=[h.front?"앞 "+h.front:"",h.hind?"뒤 "+h.hind:""].filter(Boolean).join("/"); return [h.n,h.pro?"선수말":"",sh,/^\d+$/.test(h.size)?h.size+"호":h.size,h.cond].filter(Boolean).join(" · "); };
+function drawShoe(){ const c=$("#shoe"); if(!c) return; const row=(lab,key,cur)=>`<div class="shr"><span>${lab}</span><div class="vchips tap">${nums.map(n=>`<button class="${cur==n?"on":""}" data-act="pickShoe" data-k="${key}" data-id="${n}">${n}</button>`).join("")}${key==="F"?`<button class="${shSide?"on":""}" data-act="toggleSide">사이드</button>`:""}</div></div>`; c.innerHTML=row("앞발 (프론트)","F",shF)+row("뒷발 (하인드)","H",shH)+`<div class="vchips tap" style="margin-top:6px"><button class="${shPro?"on":""}" data-act="togglePro">선수말 편자</button></div>`; }
+const hObj=h=>typeof h==="string"?{n:h,front:"",hind:"",pro:false,side:false,size:"",cond:""}:{n:h.n||"",front:h.front||"",hind:h.hind||"",pro:!!h.pro,side:!!h.side,size:h.size||"",cond:h.cond||""};
+const hLabel=h=>{ h=hObj(h); const sh=[h.front||h.side?"앞 "+[h.front,h.side?"사이드":""].filter(Boolean).join(" "):"",h.hind?"뒤 "+h.hind:""].filter(Boolean).join("/"); return [h.n,h.pro?"선수말":"",sh,/^\d+$/.test(h.size)?h.size+"호":h.size,h.cond].filter(Boolean).join(" · "); };
 const allHorses=()=>S.visits.flatMap(x=>(x.horses||[]).map(hObj));
 function freq(arr){ const m={}; arr.filter(Boolean).forEach(x=>m[x]=(m[x]||0)+1); return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(x=>x[0]); }
 function renderVisits(){
@@ -1791,7 +1791,7 @@ function editVisit(v){
     <div class="vchips tap" id="vSug" style="margin-top:8px"></div>
     <label class="f">메모 (선택)</label><textarea class="in-f" id="vNote" placeholder="예: 앞발 편자 교체, 뒷발 삭제만">${esc(v.note||"")}</textarea>
     ${!isNew?`<button class="btn danger block" style="margin-top:22px" data-act="askDel" data-col="visits" data-id="${v.id}">기록 삭제</button><div id="cf"></div>`:""}`);
-  sheetCtx={ col:"visits", obj:v }; shF=shH=""; shPro=false; drawShoe(); drawHorses();
+  sheetCtx={ col:"visits", obj:v }; shF=shH=""; shPro=shSide=false; drawShoe(); drawHorses();
 }
 function drawHorses(){
   const box=$("#vHorses"); if(!box) return;
@@ -1802,9 +1802,9 @@ function drawHorses(){
 }
 function addHorseFromInput(){
   const i=$("#vHorse"); if(!i) return; const n=i.value.trim(); if(!n) return;
-  const h={n,front:shF,hind:shH,pro:shPro,cond:$("#vCond").value.trim()};
+  const h={n,front:shF,hind:shH,pro:shPro,side:shSide,cond:$("#vCond").value.trim()};
   const k=draftHorses.findIndex(x=>x.n===n); if(k>=0) draftHorses[k]=h; else draftHorses.push(h);
-  i.value=""; $("#vCond").value=""; shF=shH=""; shPro=false; drawShoe(); drawHorses();
+  i.value=""; $("#vCond").value=""; shF=shH=""; shPro=shSide=false; drawShoe(); drawHorses();
 }
 document.addEventListener("keydown",e=>{ if(e.key==="Enter" && ["vHorse","vCond"].includes(e.target?.id)){ e.preventDefault(); addHorseFromInput(); } });
 
@@ -2020,13 +2020,14 @@ document.addEventListener("click", async e=>{
     case "openVisit": return editVisit(S.visits.find(x=>x.id===d.id));
     case "pickPlace": $("#vPlace").value=d.id; return;
     case "addHorse": return addHorseFromInput();
-    case "pickHorse": { const l=[...allHorses()].find(h=>h.n===d.id)||{}; $("#vHorse").value=d.id; shF=l.front||""; shH=l.hind||""; shPro=!!l.pro; drawShoe(); $("#vCond").value=""; return $("#vCond").focus(); }
+    case "pickHorse": { const l=[...allHorses()].find(h=>h.n===d.id)||{}; $("#vHorse").value=d.id; shF=l.front||""; shH=l.hind||""; shPro=!!l.pro; shSide=!!l.side; drawShoe(); $("#vCond").value=""; return $("#vCond").focus(); }
     case "pickShoe": { const k=d.k==="F"?"shF":"shH"; const cur=d.k==="F"?shF:shH; const nv=cur==d.id?"":d.id; if(d.k==="F") shF=nv; else shH=nv; return drawShoe(); }
+    case "toggleSide": shSide=!shSide; return drawShoe();
     case "togglePro": shPro=!shPro; return drawShoe();
     case "pickType": szType=szType===d.id?"":d.id; return syncSize();
     case "pickNum": szNum=szNum===d.id?"":d.id; return syncSize();
     case "pickCond": $("#vCond").value=d.id; return;
-    case "editHorse": { const h=draftHorses.splice(+d.i,1)[0]; drawHorses(); $("#vHorse").value=h.n; $("#vCond").value=h.cond; shF=h.front; shH=h.hind; shPro=h.pro; drawShoe(); return; }
+    case "editHorse": { const h=draftHorses.splice(+d.i,1)[0]; drawHorses(); $("#vHorse").value=h.n; $("#vCond").value=h.cond; shF=h.front; shH=h.hind; shPro=h.pro; shSide=h.side; drawShoe(); return; }
     case "delHorse": draftHorses.splice(+d.i,1); return drawHorses();
     case "saveVisit": {
       addHorseFromInput();
@@ -2148,7 +2149,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.14-4";
+const APP_VERSION="2026.11.14-5";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
