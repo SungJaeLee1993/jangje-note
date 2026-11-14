@@ -112,6 +112,7 @@ h1{font-size:32px;letter-spacing:-.03em;margin:0;font-weight:800;line-height:1.1
 .thumbs img{width:52px;height:52px;object-fit:cover;border-radius:12px;background:var(--line)}
 .vh{font-size:13px;font-weight:700;color:var(--sub);margin:18px 4px 8px}
 .htb{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;text-align:left}
+.htb .tx{display:block;font-size:11px;font-weight:600;color:var(--primary,#2f6bff);margin-top:1px}
 .htb th{font-size:11px;color:#8a909c;font-weight:600;padding:4px 6px;border-bottom:1px solid #E5E7EB}
 .htb td{padding:6px;border-bottom:1px solid #F0F1F4;font-weight:600}
 .htb tr:last-child td{border-bottom:0}.htb i{font-style:normal;font-size:10px;background:var(--primary);color:#fff;border-radius:99px;padding:1px 6px;margin-left:4px;vertical-align:1px}
@@ -1756,13 +1757,15 @@ function parseSize(z){ const m=String(z||"").match(/(프론트|사이드|하인�
 let shF="", shH="", shPro=false, shSide=false;
 const nums=[1,2,3,4,5,6,7];
 function drawShoe(){ const c=$("#shoe"); if(!c) return; const row=(lab,key,cur)=>`<div class="shr"><span>${lab}</span><div class="vchips tap">${nums.map(n=>`<button class="${cur==n?"on":""}" data-act="pickShoe" data-k="${key}" data-id="${n}">${n}</button>`).join("")}${key==="F"?`<button class="${shSide?"on":""}" data-act="toggleSide">사이드</button>`:""}</div></div>`; c.innerHTML=row("앞발 (프론트)","F",shF)+(shPro?`<div class="shr"><span>뒷발</span><em style="font-size:13px;color:#8a909c;font-style:normal">선수말은 앞발만 장제</em></div>`:row("뒷발 (하인드)","H",shH)); const pb=$("#proBtn"); if(pb) pb.classList.toggle("on",shPro); }
-const hObj=h=>typeof h==="string"?{n:h,front:"",hind:"",pro:false,side:false,size:"",cond:""}:{n:h.n||"",front:h.front||"",hind:h.hind||"",pro:!!h.pro,side:!!h.side,size:h.size||"",cond:h.cond||""};
-const hLabel=h=>{ h=hObj(h); const sh=[h.front||h.side?"앞 "+[h.front,h.side?"사이드":""].filter(Boolean).join(" "):"",h.hind?"뒤 "+h.hind:""].filter(Boolean).join("/"); return [h.n,h.pro?"선수말":"",sh,/^\d+$/.test(h.size)?h.size+"호":h.size,h.cond].filter(Boolean).join(" · "); };
+const splitTags=t=>[...new Set(String(t||"").split(/[,，]/).map(x=>x.trim()).filter(Boolean))];
+function toggleTag(id,v){ const el=$(id), a=splitTags(el.value), k=a.indexOf(v); if(k>=0) a.splice(k,1); else a.push(v); el.value=a.join(", "); }
+const hObj=h=>typeof h==="string"?{n:h,front:"",hind:"",pro:false,side:false,size:"",cond:"",tx:""}:{n:h.n||"",front:h.front||"",hind:h.hind||"",pro:!!h.pro,side:!!h.side,size:h.size||"",cond:h.cond||"",tx:h.tx||""};
+const hLabel=h=>{ h=hObj(h); const sh=[h.front||h.side?"앞 "+[h.front,h.side?"사이드":""].filter(Boolean).join(" "):"",h.hind?"뒤 "+h.hind:""].filter(Boolean).join("/"); return [h.n,h.pro?"선수말":"",sh,/^\d+$/.test(h.size)?h.size+"호":h.size,h.cond,h.tx].filter(Boolean).join(" · "); };
 const allHorses=()=>S.visits.flatMap(x=>(x.horses||[]).map(hObj));
 function freq(arr){ const m={}; arr.filter(Boolean).forEach(x=>m[x]=(m[x]||0)+1); return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(x=>x[0]); }
 function horseTable(hs){
   const R=hs.map(hObj);
-  return `<table class="htb"><thead><tr><th>말</th><th>앞</th><th>뒤</th><th>상태</th></tr></thead><tbody>${R.map(h=>`<tr><td>${esc(h.n)}${h.pro?` <i>선수</i>`:""}</td><td>${esc([h.front,h.side?"사이드":""].filter(Boolean).join(" ")||(h.size||"–"))}</td><td>${esc(h.pro?"×":h.hind||"–")}</td><td>${esc(h.cond||"–")}</td></tr>`).join("")}</tbody></table>`;
+  return `<table class="htb"><thead><tr><th>말</th><th>앞</th><th>뒤</th><th>상태</th></tr></thead><tbody>${R.map(h=>`<tr><td>${esc(h.n)}${h.pro?` <i>선수</i>`:""}</td><td>${esc([h.front,h.side?"사이드":""].filter(Boolean).join(" ")||(h.size||"–"))}</td><td>${esc(h.pro?"×":h.hind||"–")}</td><td>${esc(h.cond||"–")}${h.tx?`<small class="tx">${esc(h.tx)}</small>`:""}</td></tr>`).join("")}</tbody></table>`;
 }
 function renderVisits(){
   const ym=ymd().slice(0,7), mv=S.visits.filter(v=>(v.date||"").startsWith(ym));
@@ -1793,9 +1796,11 @@ function editVisit(v){
     <div class="vchips tap" id="vSug" style="margin:0 0 10px"></div>
     <div class="vchips" id="vHorses" style="margin:0 0 10px"></div>
     <div class="row" style="gap:8px"><input class="in-f" id="vHorse" list="hnl" placeholder="말 이름" style="flex:1;min-width:0" autocomplete="off"><button class="pro" id="proBtn" data-act="togglePro">선수말</button></div>
-    <div class="row" style="gap:8px;margin-top:8px"><input class="in-f" id="vCond" list="cdl" placeholder="발 상태" style="flex:1;min-width:0" autocomplete="off"></div>
+    <div class="row" style="gap:8px;margin-top:8px"><input class="in-f" id="vCond" list="cdl" placeholder="발 상태 (칩 여러 개 선택 가능)" style="flex:1;min-width:0" autocomplete="off"></div>
     <div id="shoe" style="margin-top:8px"></div>
-    <div class="vchips tap" style="margin-top:8px">${[...new Set(["정상","갈라짐","마름","깨짐","무름",...freq(allHorses().map(h=>h.cond))])].slice(0,10).map(c=>`<button data-act="pickCond" data-id="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+    <div class="vchips tap" style="margin-top:8px">${[...new Set(["정상","썩음(구절)","백선","제벽 균열","깨짐","농양","타박","얇은 제저","평발","마름",...splitTags(allHorses().map(h=>h.cond).join(","))])].slice(0,16).map(c=>`<button data-act="pickCond" data-id="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+    <div class="row" style="gap:8px;margin-top:10px"><input class="in-f" id="vTx" placeholder="처치 (예: 패드, 황산동)" style="flex:1;min-width:0" autocomplete="off"></div>
+    <div class="vchips tap" style="margin-top:8px">${[...new Set(["패드","황산동","요오드","제유","약포장","힛바 편자",...splitTags(allHorses().map(h=>h.tx).join(","))])].slice(0,14).map(c=>`<button data-act="pickTx" data-id="${esc(c)}">${esc(c)}</button>`).join("")}</div>
     <button class="btn block" data-act="addHorse" style="margin-top:12px">＋ 이 말 추가</button>
     <datalist id="hnl">${freq(allHorses().map(h=>h.n)).map(h=>`<option value="${esc(h)}">`).join("")}</datalist>
     <datalist id="cdl">${freq(allHorses().map(h=>h.cond)).map(h=>`<option value="${esc(h)}">`).join("")}</datalist>
@@ -1812,14 +1817,14 @@ function drawHorses(){
   $("#vSug").innerHTML=rec.length?`<div style="width:100%;font-size:12px;color:#8a909c">이전 말 누르면 호수·상태가 채워져요</div>`+rec.map(h=>`<button data-act="pickHorse" data-id="${esc(h.n)}">＋ ${esc(hLabel(h))}</button>`).join(""):"";
 }
 const lastHorse=n=>allHorses().find(h=>h.n===n);
-document.addEventListener("input",e=>{ if(e.target?.id!=="vHorse") return; const l=lastHorse(e.target.value.trim()); if(l&&!shF&&!shH&&!shPro&&!shSide&&!$("#vCond").value){ shF=l.front; shH=l.hind; shPro=l.pro; shSide=l.side; $("#vCond").value=l.cond; drawShoe(); } });
+document.addEventListener("input",e=>{ if(e.target?.id!=="vHorse") return; const l=lastHorse(e.target.value.trim()); if(l&&!shF&&!shH&&!shPro&&!shSide&&!$("#vCond").value){ shF=l.front; shH=l.hind; shPro=l.pro; shSide=l.side; $("#vCond").value=l.cond; $("#vTx").value=l.tx; drawShoe(); } });
 function addHorseFromInput(){
   const i=$("#vHorse"); if(!i) return; const n=i.value.trim(); if(!n) return;
-  const h={n,front:shF,hind:shH,pro:shPro,side:shSide,cond:$("#vCond").value.trim()};
+  const h={n,front:shF,hind:shH,pro:shPro,side:shSide,cond:$("#vCond").value.trim(),tx:$("#vTx").value.trim()};
   const k=draftHorses.findIndex(x=>x.n===n); if(k>=0) draftHorses[k]=h; else draftHorses.push(h);
-  i.value=""; $("#vCond").value=""; shF=shH=""; shPro=shSide=false; drawShoe(); drawHorses();
+  i.value=""; $("#vCond").value=""; $("#vTx").value=""; shF=shH=""; shPro=shSide=false; drawShoe(); drawHorses();
 }
-document.addEventListener("keydown",e=>{ if(e.key==="Enter" && ["vHorse","vCond"].includes(e.target?.id)){ e.preventDefault(); addHorseFromInput(); } });
+document.addEventListener("keydown",e=>{ if(e.key==="Enter" && ["vHorse","vCond","vTx"].includes(e.target?.id)){ e.preventDefault(); addHorseFromInput(); } });
 
 /* ---------- 재고 ---------- */
 function renderStock(){
@@ -2033,14 +2038,15 @@ document.addEventListener("click", async e=>{
     case "openVisit": return editVisit(S.visits.find(x=>x.id===d.id));
     case "pickPlace": $("#vPlace").value=d.id; return;
     case "addHorse": return addHorseFromInput();
-    case "pickHorse": { const l=lastHorse(d.id); if(!l) return; $("#vHorse").value=l.n; $("#vCond").value=l.cond; shF=l.front; shH=l.hind; shPro=l.pro; shSide=l.side; drawShoe(); return; }
+    case "pickHorse": { const l=lastHorse(d.id); if(!l) return; $("#vHorse").value=l.n; $("#vCond").value=l.cond; $("#vTx").value=l.tx; shF=l.front; shH=l.hind; shPro=l.pro; shSide=l.side; drawShoe(); return; }
     case "pickShoe": { const k=d.k==="F"?"shF":"shH"; const cur=d.k==="F"?shF:shH; const nv=cur==d.id?"":d.id; if(d.k==="F") shF=nv; else shH=nv; return drawShoe(); }
     case "toggleSide": shSide=!shSide; return drawShoe();
     case "togglePro": shPro=!shPro; if(shPro) shH=""; return drawShoe();
     case "pickType": szType=szType===d.id?"":d.id; return syncSize();
     case "pickNum": szNum=szNum===d.id?"":d.id; return syncSize();
-    case "pickCond": $("#vCond").value=d.id; return;
-    case "editHorse": { const h=draftHorses.splice(+d.i,1)[0]; drawHorses(); $("#vHorse").value=h.n; $("#vCond").value=h.cond; shF=h.front; shH=h.hind; shPro=h.pro; shSide=h.side; drawShoe(); return; }
+    case "pickCond": toggleTag("#vCond",d.id); return;
+    case "pickTx": toggleTag("#vTx",d.id); return;
+    case "editHorse": { const h=draftHorses.splice(+d.i,1)[0]; drawHorses(); $("#vHorse").value=h.n; $("#vCond").value=h.cond; $("#vTx").value=h.tx; shF=h.front; shH=h.hind; shPro=h.pro; shSide=h.side; drawShoe(); return; }
     case "delHorse": draftHorses.splice(+d.i,1); return drawHorses();
     case "saveVisit": {
       addHorseFromInput();
@@ -2162,7 +2168,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.15-6";
+const APP_VERSION="2026.11.15-7";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
