@@ -111,6 +111,10 @@ h1{font-size:32px;letter-spacing:-.03em;margin:0;font-weight:800;line-height:1.1
 .thumbs .tv{position:relative;width:52px;height:52px}.thumbs .tv video{width:52px;height:52px;object-fit:cover;border-radius:12px;background:#000}.thumbs .tv:after,.ph .pv:after{content:"▶";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;text-shadow:0 1px 4px rgba(0,0,0,.6);pointer-events:none}
 .thumbs img{width:52px;height:52px;object-fit:cover;border-radius:12px;background:var(--line)}
 .vh{font-size:13px;font-weight:700;color:var(--sub);margin:18px 4px 8px}
+.htb{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;text-align:left}
+.htb th{font-size:11px;color:#8a909c;font-weight:600;padding:4px 6px;border-bottom:1px solid #E5E7EB}
+.htb td{padding:6px;border-bottom:1px solid #F0F1F4;font-weight:600}
+.htb tr:last-child td{border-bottom:0}.htb i{font-style:normal;font-size:10px;background:var(--primary);color:#fff;border-radius:99px;padding:1px 6px;margin-left:4px;vertical-align:1px}
 .vchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .vchips span,.vchips button{background:#EEF0F4;border-radius:99px;padding:5px 11px;font-size:13px;font-weight:600;color:var(--ink)}
 .shr{display:flex;align-items:center;gap:8px;margin-top:6px}.shr>span{flex:0 0 74px;font-size:12px;color:var(--sub,#6b7280)}
@@ -1755,6 +1759,10 @@ const hObj=h=>typeof h==="string"?{n:h,front:"",hind:"",pro:false,side:false,siz
 const hLabel=h=>{ h=hObj(h); const sh=[h.front||h.side?"앞 "+[h.front,h.side?"사이드":""].filter(Boolean).join(" "):"",h.hind?"뒤 "+h.hind:""].filter(Boolean).join("/"); return [h.n,h.pro?"선수말":"",sh,/^\d+$/.test(h.size)?h.size+"호":h.size,h.cond].filter(Boolean).join(" · "); };
 const allHorses=()=>S.visits.flatMap(x=>(x.horses||[]).map(hObj));
 function freq(arr){ const m={}; arr.filter(Boolean).forEach(x=>m[x]=(m[x]||0)+1); return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(x=>x[0]); }
+function horseTable(hs){
+  const R=hs.map(hObj);
+  return `<table class="htb"><thead><tr><th>말</th><th>앞</th><th>뒤</th><th>상태</th></tr></thead><tbody>${R.map(h=>`<tr><td>${esc(h.n)}${h.pro?` <i>선수</i>`:""}</td><td>${esc([h.front,h.side?"사이드":""].filter(Boolean).join(" ")||(h.size||"–"))}</td><td>${esc(h.hind||"–")}</td><td>${esc(h.cond||"–")}</td></tr>`).join("")}</tbody></table>`;
+}
 function renderVisits(){
   const ym=ymd().slice(0,7), mv=S.visits.filter(v=>(v.date||"").startsWith(ym));
   const mh=mv.reduce((a,v)=>a+(v.horses||[]).length,0);
@@ -1768,7 +1776,7 @@ function renderVisits(){
     ${S.visits.length?S.visits.map(v=>{
       const ym2=(v.date||"").slice(0,7), hd=ym2!==last?`<div class="vh">${+ym2.slice(5)}월 ${ym2.slice(0,4)}</div>`:""; last=ym2;
       const hs=v.horses||[];
-      return `${hd}<button class="item" data-act="openVisit" data-id="${v.id}"><div class="t">${esc(v.place||"승마장")}</div><div class="m">${fmtDate(v.date)} · ${hs.length}마리</div>${hs.length?`<div class="vchips">${hs.map(h=>`<span>${esc(hLabel(h))}</span>`).join("")}</div>`:""}${v.note?`<div class="b">${esc(v.note)}</div>`:""}</button>`;
+      return `${hd}<button class="item" data-act="openVisit" data-id="${v.id}"><div class="t">${esc(v.place||"승마장")}</div><div class="m">${fmtDate(v.date)} · ${hs.length}마리</div>${hs.length?horseTable(hs):""}${v.note?`<div class="b">${esc(v.note)}</div>`:""}</button>`;
     }).join(""):`<div class="empty">방문한 승마장과 장제한 말을 기록해 보세요<br><small>승마장 이름 · 날짜 · 말 이름만 넣으면 돼요</small></div>`}`;
 }
 function editVisit(v){
@@ -2149,7 +2157,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.14-5";
+const APP_VERSION="2026.11.14-7";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
