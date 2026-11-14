@@ -110,6 +110,17 @@ h1{font-size:32px;letter-spacing:-.03em;margin:0;font-weight:800;line-height:1.1
 .thumbs{display:flex;gap:6px;margin-top:10px}
 .thumbs .tv{position:relative;width:52px;height:52px}.thumbs .tv video{width:52px;height:52px;object-fit:cover;border-radius:12px;background:#000}.thumbs .tv:after,.ph .pv:after{content:"▶";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;text-shadow:0 1px 4px rgba(0,0,0,.6);pointer-events:none}
 .thumbs img{width:52px;height:52px;object-fit:cover;border-radius:12px;background:var(--line)}
+.vh{font-size:13px;font-weight:700;color:var(--sub);margin:18px 4px 8px}
+.vchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.vchips span,.vchips button{background:#EEF0F4;border-radius:99px;padding:5px 11px;font-size:13px;font-weight:600;color:var(--ink)}
+.vchips.tap button{background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line);color:var(--sub2)}
+.vchips button.x{background:var(--primary);color:#fff}
+.item.stk{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 18px}
+.item.stk .nm{flex:1;min-width:0;text-align:left}
+.item.stk.low .t{color:var(--bad)}
+.step{display:flex;align-items:center;gap:2px}
+.step button{width:40px;height:40px;border-radius:12px;background:#EEF0F4;font-size:20px;font-weight:700}
+.step b{min-width:34px;text-align:center;font-size:17px}
 .empty{text-align:center;color:var(--sub);padding:36px 12px;font-size:15px}
 /* date strip + timeline */
 .strip{display:flex;gap:4px;overflow-x:auto;margin:0 -20px 18px;padding:6px 20px 14px;scrollbar-width:none}
@@ -482,14 +493,14 @@ const STUDY_TOPICS = ["해부학","편자 제작","장제 실기","이론·자�
 const INTERVALS = [0,1,3,7,14,30]; // box 0..5
 
 /* ---------- store: IndexedDB on this device ---------- */
-const COLS = ["notes","logs","cards","sessions","todos","questions","events"];
-const S = { notes:[], logs:[], cards:[], sessions:[], todos:[], questions:[], events:[] };
+const COLS = ["notes","logs","cards","sessions","todos","questions","events","visits","stock"];
+const S = { notes:[], logs:[], cards:[], sessions:[], todos:[], questions:[], events:[], visits:[], stock:[] };
 const URLS = {};               // mediaId -> object URL
 let idb = null;
 
 function openIDB(){
   return new Promise((res,rej)=>{
-    const r = indexedDB.open("farrier-notes", 4);
+    const r = indexedDB.open("farrier-notes", 5);
     r.onupgradeneeded = () => { const d=r.result; [...COLS,"media"].forEach(c=>{ if(!d.objectStoreNames.contains(c)) d.createObjectStore(c,{keyPath:"id"}); }); };
     r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
   });
@@ -510,6 +521,8 @@ function sortAll(){
   S.logs.sort((a,b)=> (b.date||"").localeCompare(a.date||"") || (b.createdAt||0)-(a.createdAt||0));
   S.cards.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   S.sessions.sort((a,b)=>(b.endedAt||0)-(a.endedAt||0));
+  S.visits.sort((a,b)=> (b.date||"").localeCompare(a.date||"") || (b.createdAt||0)-(a.createdAt||0));
+  S.stock.sort((a,b)=> (a.cat||"").localeCompare(b.cat||"","ko") || (a.name||"").localeCompare(b.name||"","ko"));
 }
 const mediaIds = o => [...(o?.photos||[]),...(o?.audios||[])].map(p=>p.mediaId).filter(Boolean);
 
@@ -992,7 +1005,12 @@ function renderNotes(){
   const inp=$("#noteQ"); inp.oninput=e=>{ noteQ=e.target.value; const pos=e.target.selectionStart; renderNotes(); const n=$("#noteQ"); n.focus(); n.setSelectionRange(pos,pos); };
 }
 
+let logSub = ls.get("fn_logSub","logs");
 function renderLogs(){
+  if(logSub==="visits") renderVisits(); else if(logSub==="stock") renderStock(); else renderLogsMain();
+  $("#view").insertAdjacentHTML("afterbegin",`<div class="segf" style="margin-bottom:14px">${[["logs","일지"],["visits","방문기록"],["stock","재고"]].map(([k,l])=>`<button class="${logSub===k?"on":""}" data-act="logSub" data-id="${k}">${l}</button>`).join("")}</div>`);
+}
+function renderLogsMain(){
   const days=[...Array(21)].map((_,i)=>addDays(ymd(),i-20));
   const has=new Set(S.logs.map(l=>l.date));
   const list=S.logs.filter(l=>!logDay || l.date===logDay);
@@ -1086,6 +1104,8 @@ function renderTimer(){
 
 function quickAdd(){
   if(tab==="notes") return editNote();
+  if(tab==="logs" && logSub==="visits") return editVisit();
+  if(tab==="logs" && logSub==="stock") return editStock();
   if(tab==="logs") return editLog(logDay?{ id:uid(), date:logDay, title:"", place:"", mentor:"", horse:"", did:"", learned:"", next:"", photos:[], createdAt:Date.now() }:null);
   if(tab==="cards" && !review && !quiz) return studyMode==="cards" ? editCard() : editQuestion();
   if(tab==="todos") return todoView==="sch" ? editEvent() : editTodo();
@@ -1716,6 +1736,82 @@ function editLog(l){
     ${S.logs.some(x=>x.id===l.id)?`<button class="btn danger block" style="margin-top:22px" data-act="askDel" data-col="logs" data-id="${l.id}">일지 삭제</button><div id="cf"></div>`:""}`);
   sheetCtx={ col:"logs", obj:l }; drawPh(); drawRec();
 }
+
+/* ---------- 방문 기록 (승마장 · 날짜 · 장제한 말) ---------- */
+let draftHorses=[];
+function freq(arr){ const m={}; arr.filter(Boolean).forEach(x=>m[x]=(m[x]||0)+1); return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(x=>x[0]); }
+function renderVisits(){
+  const ym=ymd().slice(0,7), mv=S.visits.filter(v=>(v.date||"").startsWith(ym));
+  const mh=mv.reduce((a,v)=>a+(v.horses||[]).length,0);
+  let last="";
+  $("#view").innerHTML=`
+    <div class="card dark" style="padding:20px;border-radius:var(--r-xl)">${waves(.12)}
+      <div style="font-size:14px;opacity:.7">이번 달</div>
+      <div class="row" style="gap:28px;margin-top:4px"><div><b style="font-size:30px">${mv.length}</b><span style="opacity:.7"> 곳 방문</span></div><div><b style="font-size:30px">${mh}</b><span style="opacity:.7"> 마리 장제</span></div></div>
+      <button class="btn white" style="margin-top:14px" data-act="newVisit">＋ 방문 기록하기</button>
+    </div>
+    ${S.visits.length?S.visits.map(v=>{
+      const ym2=(v.date||"").slice(0,7), hd=ym2!==last?`<div class="vh">${+ym2.slice(5)}월 ${ym2.slice(0,4)}</div>`:""; last=ym2;
+      const hs=v.horses||[];
+      return `${hd}<button class="item" data-act="openVisit" data-id="${v.id}"><div class="t">${esc(v.place||"승마장")}</div><div class="m">${fmtDate(v.date)} · ${hs.length}마리</div>${hs.length?`<div class="vchips">${hs.map(h=>`<span>${esc(h)}</span>`).join("")}</div>`:""}${v.note?`<div class="b">${esc(v.note)}</div>`:""}</button>`;
+    }).join(""):`<div class="empty">방문한 승마장과 장제한 말을 기록해 보세요<br><small>승마장 이름 · 날짜 · 말 이름만 넣으면 돼요</small></div>`}`;
+}
+function editVisit(v){
+  const isNew=!v;
+  v=v||{ id:uid(), date:ymd(), place:"", horses:[], note:"", createdAt:Date.now() };
+  draftHorses=[...(v.horses||[])];
+  const places=freq(S.visits.map(x=>x.place)).slice(0,8);
+  openSheet(`${head(isNew?"방문 기록":"방문 편집",`<button class="link" data-act="saveVisit" data-id="${v.id}">저장</button>`)}
+    <label class="f">날짜</label><input class="in-f" type="date" id="vDate" value="${esc(v.date)}">
+    <label class="f">승마장 이름</label><input class="in-f" id="vPlace" value="${esc(v.place)}" placeholder="예: 이천 OO승마장">
+    ${places.length?`<div class="vchips tap" style="margin-top:8px">${places.map(p=>`<button data-act="pickPlace" data-id="${esc(p)}">${esc(p)}</button>`).join("")}</div>`:""}
+    <label class="f">장제한 말 <span id="vCnt"></span></label>
+    <div class="row" style="gap:8px"><input class="in-f" id="vHorse" list="hnl" placeholder="말 이름 입력 후 추가" style="flex:1" autocomplete="off"><button class="btn" data-act="addHorse" style="flex:0 0 auto">추가</button></div>
+    <datalist id="hnl">${freq(S.visits.flatMap(x=>x.horses||[])).map(h=>`<option value="${esc(h)}">`).join("")}</datalist>
+    <div class="vchips" id="vHorses" style="margin-top:10px"></div>
+    <div class="vchips tap" id="vSug" style="margin-top:8px"></div>
+    <label class="f">메모 (선택)</label><textarea class="in-f" id="vNote" placeholder="예: 앞발 편자 교체, 뒷발 삭제만">${esc(v.note||"")}</textarea>
+    ${!isNew?`<button class="btn danger block" style="margin-top:22px" data-act="askDel" data-col="visits" data-id="${v.id}">기록 삭제</button><div id="cf"></div>`:""}`);
+  sheetCtx={ col:"visits", obj:v }; drawHorses();
+}
+function drawHorses(){
+  const box=$("#vHorses"); if(!box) return;
+  box.innerHTML=draftHorses.map((h,i)=>`<button class="x" data-act="delHorse" data-i="${i}">${esc(h)} ✕</button>`).join("");
+  $("#vCnt").textContent=draftHorses.length?`(${draftHorses.length}마리)`:"";
+  const sug=freq(S.visits.flatMap(x=>x.horses||[])).filter(h=>!draftHorses.includes(h)).slice(0,10);
+  $("#vSug").innerHTML=sug.map(h=>`<button data-act="pickHorse" data-id="${esc(h)}">＋ ${esc(h)}</button>`).join("");
+}
+function addHorseFromInput(){ const i=$("#vHorse"); if(!i) return; const n=i.value.trim(); if(n && !draftHorses.includes(n)) draftHorses.push(n); i.value=""; drawHorses(); }
+document.addEventListener("keydown",e=>{ if(e.key==="Enter" && e.target?.id==="vHorse"){ e.preventDefault(); addHorseFromInput(); } });
+
+/* ---------- 재고 ---------- */
+function renderStock(){
+  const low=S.stock.filter(x=>(x.min||0)>0 && (x.qty||0)<=x.min);
+  let last=null;
+  $("#view").innerHTML=`
+    <div class="card dark" style="padding:20px;border-radius:var(--r-xl)">${waves(.12)}
+      <div style="font-size:14px;opacity:.7">재고</div>
+      <div class="row" style="gap:28px;margin-top:4px"><div><b style="font-size:30px">${S.stock.length}</b><span style="opacity:.7"> 품목</span></div><div><b style="font-size:30px;${low.length?"color:#FFB4A8":""}">${low.length}</b><span style="opacity:.7"> 부족</span></div></div>
+      <div class="row" style="gap:8px;margin-top:14px"><button class="btn white" data-act="newStock">＋ 품목 추가</button>${low.length?`<button class="btn" style="background:rgba(255,255,255,.14);color:#fff" data-act="copyLow">부족 품목 복사</button>`:""}</div>
+    </div>
+    ${S.stock.length?S.stock.map(x=>{
+      const c=x.cat||"기타", hd=c!==last?`<div class="vh">${esc(c)}</div>`:""; last=c; const isLow=(x.min||0)>0&&(x.qty||0)<=x.min;
+      return `${hd}<div class="item stk ${isLow?"low":""}"><button class="nm" data-act="openStock" data-id="${x.id}"><div class="t">${esc(x.name)}</div><div class="m">${isLow?`부족 · 기준 ${x.min}개 이하 · `:""}${x.checked?fmtDate(x.checked)+" 확인":""}</div></button><div class="step"><button data-act="stk" data-id="${x.id}" data-delta="-1" aria-label="줄이기">−</button><b>${x.qty||0}</b><button data-act="stk" data-id="${x.id}" data-delta="1" aria-label="늘리기">＋</button></div></div>`;
+    }).join(""):`<div class="empty">편자·못·도구 등 재고를 기록해 보세요<br><small>＋ 버튼으로 수량을 바로 바꿀 수 있어요</small></div>`}`;
+}
+function editStock(x){
+  const isNew=!x;
+  x=x||{ id:uid(), name:"", cat:"편자", qty:0, min:0, createdAt:Date.now() };
+  const cats=[...new Set(["편자","편자못","도구","소모품","기타",...S.stock.map(y=>y.cat||"기타")])];
+  openSheet(`${head(isNew?"품목 추가":"품목 편집",`<button class="link" data-act="saveStock" data-id="${x.id}">저장</button>`)}
+    <label class="f">품목 이름</label><input class="in-f" id="sName" value="${esc(x.name)}" placeholder="예: 편자 앞발 2호">
+    <label class="f">분류</label><input class="in-f" id="sCat" list="scl" value="${esc(x.cat||"")}"><datalist id="scl">${cats.map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
+    <div class="vchips tap" style="margin-top:8px">${cats.slice(0,6).map(c=>`<button data-act="pickCat" data-id="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+    <label class="f">현재 수량</label><input class="in-f" type="number" inputmode="numeric" min="0" id="sQty" value="${x.qty||0}">
+    <label class="f">부족 기준 (이 수량 이하면 '부족' 표시, 0이면 끔)</label><input class="in-f" type="number" inputmode="numeric" min="0" id="sMin" value="${x.min||0}">
+    ${!isNew?`<button class="btn danger block" style="margin-top:22px" data-act="askDel" data-col="stock" data-id="${x.id}">품목 삭제</button><div id="cf"></div>`:""}`);
+  sheetCtx={ col:"stock", obj:x };
+}
 /* card */
 function editCard(c){
   c = c || { id:uid(), cat: cardCat!=="전체"?cardCat:"해부학", front:"", back:"", box:0, due:ymd(), createdAt:Date.now() };
@@ -1894,6 +1990,32 @@ document.addEventListener("click", async e=>{
       const s={...sheetCtx.obj, date:$("#sDate").value||ymd(), topic:$("#sTopic").value, minutes:m, memo:$("#sMemo").value.trim()};
       closeSheet(); await put("sessions",s); return toast("저장했어요");
     }
+    case "logSub": logSub=d.id; ls.set("fn_logSub",logSub); return render();
+    case "newVisit": return editVisit();
+    case "openVisit": return editVisit(S.visits.find(x=>x.id===d.id));
+    case "pickPlace": $("#vPlace").value=d.id; return;
+    case "addHorse": return addHorseFromInput();
+    case "pickHorse": if(!draftHorses.includes(d.id)) draftHorses.push(d.id); return drawHorses();
+    case "delHorse": draftHorses.splice(+d.i,1); return drawHorses();
+    case "saveVisit": {
+      addHorseFromInput();
+      const v={...sheetCtx.obj, date:$("#vDate").value||ymd(), place:$("#vPlace").value.trim(), horses:[...draftHorses], note:$("#vNote").value.trim()};
+      if(!v.place && !v.horses.length) return toast("승마장 이름이나 말을 입력해 주세요");
+      closeSheet(); await put("visits",v); return toast("저장했어요");
+    }
+    case "newStock": return editStock();
+    case "openStock": return editStock(S.stock.find(x=>x.id===d.id));
+    case "pickCat": $("#sCat").value=d.id; return;
+    case "saveStock": {
+      const x={...sheetCtx.obj, name:$("#sName").value.trim(), cat:$("#sCat").value.trim()||"기타", qty:Math.max(0,parseInt($("#sQty").value)||0), min:Math.max(0,parseInt($("#sMin").value)||0), checked:ymd()};
+      if(!x.name) return toast("품목 이름을 입력해 주세요");
+      closeSheet(); await put("stock",x); return toast("저장했어요");
+    }
+    case "stk": { const x=S.stock.find(y=>y.id===d.id); if(!x) return; buzz(6); return put("stock",{...x, qty:Math.max(0,(x.qty||0)+(+d.delta)), checked:ymd()}); }
+    case "copyLow": {
+      const t=S.stock.filter(x=>(x.min||0)>0&&(x.qty||0)<=x.min).map(x=>`- ${x.name} (현재 ${x.qty||0}개)`).join("\n");
+      try{ await navigator.clipboard.writeText("부족한 재고\n"+t); toast("복사했어요"); }catch(e){ toast("복사 실패"); } return;
+    }
     case "askDel": $("#cf").innerHTML=`<div class="confirm"><button class="btn line block" data-act="cancelDel">취소</button><button class="btn block" style="background:var(--bad)" data-act="doDel" data-col="${d.col}" data-id="${d.id}">정말 삭제</button></div>`; return;
     case "doDel": closeSheet(); await del(d.col,d.id); return toast("삭제했어요");
     case "starter": return addStarter();
@@ -1995,7 +2117,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.12-2";
+const APP_VERSION="2026.11.14-1";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
