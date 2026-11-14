@@ -129,7 +129,8 @@ h1{font-size:32px;letter-spacing:-.03em;margin:0;font-weight:800;line-height:1.1
 .item.stk{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 18px}
 .item.stk .nm{flex:1;min-width:0;text-align:left}
 .item.stk.low .t{color:var(--bad)}
-.chips2{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.chips2 button{padding:8px 14px;border-radius:99px;background:#fff;font-size:14px;font-weight:700;border:1px solid #E3E5EA;color:var(--ink)}.chips2 button.on{background:#2b2b2b;color:#fff;border-color:#2b2b2b}.chips2.br button{font-size:13px;padding:6px 12px}
+.chips2{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.chips2 button{padding:8px 14px;border-radius:99px;background:#fff;font-size:14px;font-weight:700;border:1px solid #E3E5EA;color:var(--ink)}.chips2 button.on{background:#2b2b2b;color:#fff;border-color:#2b2b2b}.chips2.loc button{flex:1;display:flex;justify-content:center;gap:6px;align-items:center}.chips2.loc i{font-style:normal;font-size:12px;opacity:.65}
+.chips2.br button{font-size:13px;padding:6px 12px}
 .alert{background:#FFF1F0;border:1px solid #FFD4CF;color:#C0392B;border-radius:14px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px;margin-bottom:10px}.alert button{background:#C0392B;color:#fff;border:0;border-radius:10px;padding:7px 12px;font-weight:700;font-size:13px}
 #view .card .hd,#view .card .r{display:grid;grid-template-columns:38px 1fr 1fr 1fr;gap:6px;align-items:center}#view .card .hd{font-size:12px;color:#8a909c;font-weight:700;text-align:center;margin-bottom:6px}#view .card .r{margin-bottom:6px}.r .n{font-weight:800;font-size:14px}
 .c{background:#F4F5F8;border-radius:12px;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 2px}.c b{font-size:17px}.c button{width:26px;height:40px;background:none;color:#9AA0AB;font-size:15px}.c.low{background:#FFF1F0}.c.low b{color:#C0392B}.c.zero b{color:#C8CCD4}
@@ -1836,28 +1837,30 @@ document.addEventListener("keydown",e=>{ if(e.key==="Enter" && ["vHorse","vCond"
 /* ---------- 재고 ---------- */
 const SZ=[1,2,3,4,5,6,7], KINDS=["프론트","사이드","하인드"], NAILS=["E2","E3","E4","E5","E6","E7","E8"];
 const stkMin=()=>+ls.get("fn_stkMin",2), nailMin=()=>+ls.get("fn_nailMin",20);
-const stkLow=x=>x.kind?(x.qty||0)<=(x.kind==="못"?nailMin():stkMin()):((x.min||0)>0&&(x.qty||0)<=x.min);
-const stkFind=(b,k,s)=>S.stock.find(x=>x.brand===b&&x.kind===k&&String(x.size)===String(s));
+const stkLow=x=>x.kind?(x.checked||x.qty)&&(x.qty||0)<=(x.kind==="못"?nailMin():stkMin()):((x.min||0)>0&&(x.qty||0)<=x.min);
+const LOCS=["창고","차량"], curLoc=()=>ls.get("fn_stkLoc","창고");
+const stkFind=(b,k,s,l=curLoc())=>S.stock.find(x=>x.brand===b&&x.kind===k&&String(x.size)===String(s)&&(x.loc||"창고")===l);
 const stkUnit=x=>x.kind==="못"?"개":x.kind?"켤레":"개";
 function renderStock(){
   const tab=ls.get("fn_stkTab","편자");
   const brands=[...new Set(S.stock.filter(x=>x.brand).map(x=>x.brand))]; if(!brands.length) brands.push("기본");
   let br=ls.get("fn_stkBrand",brands[0]); if(!brands.includes(br)){ br=brands[0]; }
   const low=S.stock.filter(stkLow), zero=low.filter(x=>!(x.qty||0));
-  const cell=(k,sz)=>{ const x=stkFind(br,k,sz), q=x?x.qty||0:0, cl=!x?"zero":stkLow(x)?"low":(q?"":"zero"); return `<div class="c ${cl}"><button data-act="mx" data-b="${esc(br)}" data-k="${k}" data-s="${sz}" data-delta="-1" aria-label="줄이기">−</button><b>${q}</b><button data-act="mx" data-b="${esc(br)}" data-k="${k}" data-s="${sz}" data-delta="1" aria-label="늘리기">＋</button></div>`; };
+  const loc=curLoc(); const cell=(k,sz)=>{ const x=stkFind(br,k,sz), q=x?x.qty||0:0, cl=!x?"zero":stkLow(x)?"low":(q?"":"zero"); return `<div class="c ${cl}"><button data-act="mx" data-b="${esc(br)}" data-l="${loc}" data-k="${k}" data-s="${sz}" data-delta="-1" aria-label="줄이기">−</button><b>${q}</b><button data-act="mx" data-b="${esc(br)}" data-l="${loc}" data-k="${k}" data-s="${sz}" data-delta="1" aria-label="늘리기">＋</button></div>`; };
   const legacy=S.stock.filter(x=>!x.kind); let last=null;
-  const body = tab==="편자" ? `<div class="card"><div class="t">${esc(br)} <small data-act="setMin">${stkMin()}켤레 이하면 빨강 ✎</small></div>
+  const body = tab==="편자" ? `<div class="card"><div class="t">${esc(br)} · ${loc} <small data-act="setMin">${stkMin()}켤레 이하면 빨강 ✎</small></div>
       <div class="hd"><span></span>${KINDS.map(k=>`<span>${k}</span>`).join("")}</div>
       ${SZ.map(n=>`<div class="r"><div class="n">${n}호</div>${KINDS.map(k=>cell(k,n)).join("")}</div>`).join("")}</div>`
-    : tab==="못" ? `<div class="card"><div class="t">${esc(br)} 못 <small data-act="setNailMin">${nailMin()}개 이하면 빨강 ✎</small></div>
-      <div class="nails">${NAILS.map(n=>{ const x=stkFind(br,"못",n), q=x?x.qty||0:0; return `<div class="nl ${x&&stkLow(x)?"low":(q?"":"zero")}"><span>${n}</span><b>${q}</b><div class="nb"><button data-act="mx" data-b="${esc(br)}" data-k="못" data-s="${n}" data-delta="-10">−</button><button data-act="mx" data-b="${esc(br)}" data-k="못" data-s="${n}" data-delta="10">＋</button></div></div>`; }).join("")}</div><div class="note">탭하면 ±10개</div></div>`
+    : tab==="못" ? `<div class="card"><div class="t">${esc(br)} 못 · ${loc} <small data-act="setNailMin">${nailMin()}개 이하면 빨강 ✎</small></div>
+      <div class="nails">${NAILS.map(n=>{ const x=stkFind(br,"못",n), q=x?x.qty||0:0; return `<div class="nl ${x&&stkLow(x)?"low":(q?"":"zero")}"><span>${n}</span><b>${q}</b><div class="nb"><button data-act="mx" data-b="${esc(br)}" data-l="${loc}" data-k="못" data-s="${n}" data-delta="-10">−</button><button data-act="mx" data-b="${esc(br)}" data-l="${loc}" data-k="못" data-s="${n}" data-delta="10">＋</button></div></div>`; }).join("")}</div><div class="note">탭하면 ±10개</div></div>`
     : `<button class="btn block" data-act="newStock" style="margin-bottom:10px">＋ 기타 품목 추가</button>${legacy.length?legacy.map(x=>{
       const c=x.cat||"기타", hd=c!==last?`<div class="vh">${esc(c)}</div>`:""; last=c; const isLow=stkLow(x);
       return `${hd}<div class="item stk ${isLow?"low":""}"><button class="nm" data-act="openStock" data-id="${x.id}"><div class="t">${esc(x.name)}</div><div class="m">${isLow?`부족 · 기준 ${x.min}개 이하 · `:""}${x.checked?fmtDate(x.checked)+" 확인":""}</div></button><div class="step"><button data-act="stk" data-id="${x.id}" data-delta="-1" aria-label="줄이기">−</button><b>${x.qty||0}</b><button data-act="stk" data-id="${x.id}" data-delta="1" aria-label="늘리기">＋</button></div></div>`;
     }).join(""):`<div class="empty">도구·소모품 등 기타 재고를 기록해 보세요</div>`}`;
   $("#view").innerHTML=`
     <div class="chips2">${["편자","못","기타"].map(t=>`<button class="${tab===t?"on":""}" data-act="stkTab" data-id="${t}">${t==="기타"?"도구·소모품":t}</button>`).join("")}</div>
-    ${tab!=="기타"?`<div class="chips2 br">${brands.map(b=>`<button class="${b===br?"on":""}" data-act="stkBrand" data-id="${esc(b)}">${esc(b)}</button>`).join("")}<button data-act="addBrand">＋ 브랜드</button></div>`:""}
+    ${tab!=="기타"?`<div class="chips2 loc">${LOCS.map(l=>`<button class="${l===loc?"on":""}" data-act="stkLoc" data-id="${l}">${l==="창고"?"🏠 창고":"🚗 차량"}<i>${S.stock.filter(x=>x.kind&&(x.loc||"창고")===l&&x.brand===br&&(tab==="못"?x.kind==="못":x.kind!=="못")).reduce((a,x)=>a+(x.qty||0),0)}</i></button>`).join("")}</div>
+    <div class="chips2 br">${brands.map(b=>`<button class="${b===br?"on":""}" data-act="stkBrand" data-id="${esc(b)}">${esc(b)}</button>`).join("")}<button data-act="addBrand">＋ 브랜드</button></div>`:""}
     ${low.length?`<div class="alert"><span>⚠ 부족 ${low.length-zero.length}종${zero.length?` · 품절 ${zero.length}종`:""}</span><button data-act="copyLow">목록 복사</button></div>`:""}
     ${body}`;
 }
@@ -2082,15 +2085,16 @@ document.addEventListener("click", async e=>{
       if(!x.name) return toast("품목 이름을 입력해 주세요");
       closeSheet(); await put("stock",x); return toast("저장했어요");
     }
+    case "stkLoc": ls.set("fn_stkLoc",d.id); return renderStock();
     case "stkTab": ls.set("fn_stkTab",d.id); return renderStock();
     case "stkBrand": ls.set("fn_stkBrand",d.id); return renderStock();
     case "addBrand": { const n=(prompt("브랜드 이름 (예: MUSTAD)")||"").trim(); if(!n) return; ls.set("fn_stkBrand",n); await put("stock",{id:uid(),cat:"편자",brand:n,kind:"프론트",size:"1",name:`${n} 프론트 1호`,qty:0,min:0,createdAt:Date.now()}); return; }
     case "setMin": { const v=parseInt(prompt("몇 켤레 이하면 부족으로 표시할까요?",stkMin())); if(isNaN(v)||v<0) return; ls.set("fn_stkMin",v); return renderStock(); }
     case "setNailMin": { const v=parseInt(prompt("몇 개 이하면 부족으로 표시할까요?",nailMin())); if(isNaN(v)||v<0) return; ls.set("fn_nailMin",v); return renderStock(); }
-    case "mx": { let x=stkFind(d.b,d.k,d.s); if(!x) x={id:uid(),cat:d.k==="못"?"못":"편자",brand:d.b,kind:d.k,size:d.s,name:d.k==="못"?`${d.b} 못 ${d.s}`:`${d.b} ${d.k} ${d.s}호`,qty:0,min:0,createdAt:Date.now()}; buzz(6); return put("stock",{...x,qty:Math.max(0,(x.qty||0)+(+d.delta)),checked:ymd()}); }
+    case "mx": { let x=stkFind(d.b,d.k,d.s,d.l); if(!x) x={id:uid(),cat:d.k==="못"?"못":"편자",brand:d.b,loc:d.l,kind:d.k,size:d.s,name:d.k==="못"?`${d.b} 못 ${d.s}`:`${d.b} ${d.k} ${d.s}호`,qty:0,min:0,createdAt:Date.now()}; buzz(6); return put("stock",{...x,qty:Math.max(0,(x.qty||0)+(+d.delta)),checked:ymd()}); }
     case "stk": { const x=S.stock.find(y=>y.id===d.id); if(!x) return; buzz(6); return put("stock",{...x, qty:Math.max(0,(x.qty||0)+(+d.delta)), checked:ymd()}); }
     case "copyLow": {
-      const t=S.stock.filter(stkLow).map(x=>`- ${x.name} (현재 ${x.qty||0}${stkUnit(x)})`).join("\n");
+      const t=S.stock.filter(stkLow).map(x=>`- ${x.kind?(x.loc||"창고")+" ":""}${x.name} (현재 ${x.qty||0}${stkUnit(x)})`).join("\n");
       try{ await navigator.clipboard.writeText("부족한 재고\n"+t); toast("복사했어요"); }catch(e){ toast("복사 실패"); } return;
     }
     case "askDel": $("#cf").innerHTML=`<div class="confirm"><button class="btn line block" data-act="cancelDel">취소</button><button class="btn block" style="background:var(--bad)" data-act="doDel" data-col="${d.col}" data-id="${d.id}">정말 삭제</button></div>`; return;
@@ -2194,7 +2198,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.15-8";
+const APP_VERSION="2026.11.15-10";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
