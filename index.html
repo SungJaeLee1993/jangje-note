@@ -1789,14 +1789,14 @@ function editVisit(v){
     <label class="f">승마장 이름</label><input class="in-f" id="vPlace" value="${esc(v.place)}" placeholder="예: 이천 OO승마장">
     ${places.length?`<div class="vchips tap" style="margin-top:8px">${places.map(p=>`<button data-act="pickPlace" data-id="${esc(p)}">${esc(p)}</button>`).join("")}</div>`:""}
     <label class="f">장제한 말 <span id="vCnt"></span></label>
+    <div class="vchips tap" id="vSug" style="margin:0 0 10px"></div>
+    <div class="vchips" id="vHorses" style="margin:0 0 10px"></div>
     <div class="row" style="gap:8px"><input class="in-f" id="vHorse" list="hnl" placeholder="말 이름" style="flex:1" autocomplete="off"><button class="btn" data-act="addHorse" style="flex:0 0 auto">추가</button></div>
     <div class="row" style="gap:8px;margin-top:8px"><input class="in-f" id="vCond" list="cdl" placeholder="발 상태" style="flex:1;min-width:0" autocomplete="off"></div>
     <div id="shoe" style="margin-top:8px"></div>
     <div class="vchips tap" style="margin-top:8px">${[...new Set(["정상","갈라짐","마름","깨짐","무름",...freq(allHorses().map(h=>h.cond))])].slice(0,10).map(c=>`<button data-act="pickCond" data-id="${esc(c)}">${esc(c)}</button>`).join("")}</div>
     <datalist id="hnl">${freq(allHorses().map(h=>h.n)).map(h=>`<option value="${esc(h)}">`).join("")}</datalist>
     <datalist id="cdl">${freq(allHorses().map(h=>h.cond)).map(h=>`<option value="${esc(h)}">`).join("")}</datalist>
-    <div class="vchips" id="vHorses" style="margin-top:10px"></div>
-    <div class="vchips tap" id="vSug" style="margin-top:8px"></div>
     <label class="f">메모 (선택)</label><textarea class="in-f" id="vNote" placeholder="예: 앞발 편자 교체, 뒷발 삭제만">${esc(v.note||"")}</textarea>
     ${!isNew?`<button class="btn danger block" style="margin-top:22px" data-act="askDel" data-col="visits" data-id="${v.id}">기록 삭제</button><div id="cf"></div>`:""}`);
   sheetCtx={ col:"visits", obj:v }; shF=shH=""; shPro=shSide=false; drawShoe(); drawHorses();
@@ -1806,8 +1806,11 @@ function drawHorses(){
   box.innerHTML=draftHorses.map((h,i)=>`<span class="hc"><button data-act="editHorse" data-i="${i}">${esc(hLabel(h))}</button><button data-act="delHorse" data-i="${i}" aria-label="삭제">✕</button></span>`).join("");
   $("#vCnt").textContent=draftHorses.length?`(${draftHorses.length}마리)`:"";
   const have=new Set(draftHorses.map(h=>h.n));
-  $("#vSug").innerHTML=freq(allHorses().map(h=>h.n)).filter(n=>!have.has(n)).slice(0,10).map(h=>`<button data-act="pickHorse" data-id="${esc(h)}">＋ ${esc(h)}</button>`).join("");
+  const seen=new Set(), rec=allHorses().filter(h=>h.n&&!have.has(h.n)&&!seen.has(h.n)&&seen.add(h.n)).slice(0,12);
+  $("#vSug").innerHTML=rec.length?`<div style="width:100%;font-size:12px;color:#8a909c">지난번 그대로 추가 (탭 한 번)</div>`+rec.map(h=>`<button data-act="pickHorse" data-id="${esc(h.n)}">＋ ${esc(hLabel(h))}</button>`).join(""):"";
 }
+const lastHorse=n=>allHorses().find(h=>h.n===n);
+document.addEventListener("input",e=>{ if(e.target?.id!=="vHorse") return; const l=lastHorse(e.target.value.trim()); if(l&&!shF&&!shH&&!shPro&&!shSide&&!$("#vCond").value){ shF=l.front; shH=l.hind; shPro=l.pro; shSide=l.side; $("#vCond").value=l.cond; drawShoe(); } });
 function addHorseFromInput(){
   const i=$("#vHorse"); if(!i) return; const n=i.value.trim(); if(!n) return;
   const h={n,front:shF,hind:shH,pro:shPro,side:shSide,cond:$("#vCond").value.trim()};
@@ -2028,7 +2031,7 @@ document.addEventListener("click", async e=>{
     case "openVisit": return editVisit(S.visits.find(x=>x.id===d.id));
     case "pickPlace": $("#vPlace").value=d.id; return;
     case "addHorse": return addHorseFromInput();
-    case "pickHorse": { const l=[...allHorses()].find(h=>h.n===d.id)||{}; $("#vHorse").value=d.id; shF=l.front||""; shH=l.hind||""; shPro=!!l.pro; shSide=!!l.side; drawShoe(); $("#vCond").value=""; return $("#vCond").focus(); }
+    case "pickHorse": { const l=lastHorse(d.id); if(l) draftHorses.push({...l}); return drawHorses(); }
     case "pickShoe": { const k=d.k==="F"?"shF":"shH"; const cur=d.k==="F"?shF:shH; const nv=cur==d.id?"":d.id; if(d.k==="F") shF=nv; else shH=nv; return drawShoe(); }
     case "toggleSide": shSide=!shSide; return drawShoe();
     case "togglePro": shPro=!shPro; if(shPro) shH=""; return drawShoe();
@@ -2157,7 +2160,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.15-1";
+const APP_VERSION="2026.11.15-3";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
