@@ -1809,7 +1809,7 @@ function drawHorses(){
   $("#vCnt").textContent=draftHorses.length?`(${draftHorses.length}마리)`:"";
   const have=new Set(draftHorses.map(h=>h.n));
   const seen=new Set(), rec=allHorses().filter(h=>h.n&&!have.has(h.n)&&!seen.has(h.n)&&seen.add(h.n)).slice(0,12);
-  $("#vSug").innerHTML=rec.length?`<div style="width:100%;font-size:12px;color:#8a909c">지난번 그대로 추가 (탭 한 번)</div>`+rec.map(h=>`<button data-act="pickHorse" data-id="${esc(h.n)}">＋ ${esc(hLabel(h))}</button>`).join(""):"";
+  $("#vSug").innerHTML=rec.length?`<div style="width:100%;font-size:12px;color:#8a909c">이전 말 누르면 호수·상태가 채워져요</div>`+rec.map(h=>`<button data-act="pickHorse" data-id="${esc(h.n)}">＋ ${esc(hLabel(h))}</button>`).join(""):"";
 }
 const lastHorse=n=>allHorses().find(h=>h.n===n);
 document.addEventListener("input",e=>{ if(e.target?.id!=="vHorse") return; const l=lastHorse(e.target.value.trim()); if(l&&!shF&&!shH&&!shPro&&!shSide&&!$("#vCond").value){ shF=l.front; shH=l.hind; shPro=l.pro; shSide=l.side; $("#vCond").value=l.cond; drawShoe(); } });
@@ -2033,7 +2033,7 @@ document.addEventListener("click", async e=>{
     case "openVisit": return editVisit(S.visits.find(x=>x.id===d.id));
     case "pickPlace": $("#vPlace").value=d.id; return;
     case "addHorse": return addHorseFromInput();
-    case "pickHorse": { const l=lastHorse(d.id); if(l) draftHorses.push({...l}); return drawHorses(); }
+    case "pickHorse": { const l=lastHorse(d.id); if(!l) return; $("#vHorse").value=l.n; $("#vCond").value=l.cond; shF=l.front; shH=l.hind; shPro=l.pro; shSide=l.side; drawShoe(); return; }
     case "pickShoe": { const k=d.k==="F"?"shF":"shH"; const cur=d.k==="F"?shF:shH; const nv=cur==d.id?"":d.id; if(d.k==="F") shF=nv; else shH=nv; return drawShoe(); }
     case "toggleSide": shSide=!shSide; return drawShoe();
     case "togglePro": shPro=!shPro; if(shPro) shH=""; return drawShoe();
@@ -2162,7 +2162,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.15-5";
+const APP_VERSION="2026.11.15-6";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
