@@ -1826,7 +1826,10 @@ function editVisit(v){
   sheetCtx={ col:"visits", obj:v };
   openSheet(`<div id="vw"></div>`); $("#sheet").classList.add("hasfoot"); vwRender();
 }
-function vwKnown(){ const seen=new Set(), out=[]; const here=S.visits.filter(x=>x.place&&x.place===VW.v.place), rest=S.visits.filter(x=>!(x.place&&x.place===VW.v.place)); [...here,...rest].forEach(x=>(x.horses||[]).map(hObj).forEach(h=>{ if(h.n&&!seen.has(h.n)){ seen.add(h.n); out.push(h.n); } })); VW.sel.forEach(n=>{ if(!seen.has(n)){ seen.add(n); out.push(n); } }); return out; }
+function vwKnown(){ const mk=arr=>{ const seen=new Set(), out=[]; arr.forEach(x=>(x.horses||[]).map(hObj).forEach(h=>{ if(h.n&&!seen.has(h.n)){ seen.add(h.n); out.push(h.n); } })); return out; };
+  const here=mk(S.visits.filter(x=>x.place&&x.place===VW.v.place)), other=mk(S.visits.filter(x=>!(x.place&&x.place===VW.v.place))).filter(n=>!here.includes(n));
+  VW.sel.forEach(n=>{ if(!here.includes(n)&&!other.includes(n)) here.push(n); });
+  return {here,other}; }
 function vwCur(){ return VW.data[VW.sel[VW.idx]]; }
 function vwEnsure(n){ if(VW.data[n]) return; const l=lastRec(n); VW.data[n]=l?{...l.h,from:l.date}:{n,front:"",hind:"",pro:false,side:false,cond:"",tx:""}; }
 function vwRender(){
@@ -1841,10 +1844,11 @@ function vwRender(){
       <input class="in-f" id="vPlace" placeholder="직접 입력 (예: 이천 OO승마장)" value="${places.includes(v.place)?"":esc(v.place)}" style="margin-top:12px">`;
     foot=`<button class="btn block big" data-act="vwNext">다음</button>`;
   } else if(st===2){
-    const names=vwKnown();
-    body=`<h2 class="vh2">오늘 장제한 말을<br>모두 눌러 주세요</h2><div class="vsub">${esc(v.place||"")}에서 자주 한 말 순서예요</div>
-      <div class="vch">${names.map(n=>`<button class="${VW.sel.includes(n)?"on":""}" data-act="vwTog" data-id="${esc(n)}">${VW.sel.includes(n)?"✓ ":""}${esc(n)}</button>`).join("")}</div>
-      <div class="row" style="gap:8px;margin-top:12px"><input class="in-f" id="vNew" placeholder="＋ 새 말 이름 입력" style="flex:1;min-width:0" autocomplete="off"><button class="btn" data-act="vwAddNew">추가</button></div>`;
+    const {here,other}=vwKnown(); const chip=n=>`<button class="${VW.sel.includes(n)?"on":""}" data-act="vwTog" data-id="${esc(n)}">${VW.sel.includes(n)?"✓ ":""}${esc(n)}</button>`;
+    body=`<h2 class="vh2">오늘 장제한 말을<br>모두 눌러 주세요</h2><div class="vsub">${here.length?`이 승마장에서 한 말이에요`:`처음 기록하는 승마장이에요 · 말 이름을 입력해 주세요`}</div>
+      ${here.length?`<div class="vch">${here.map(chip).join("")}</div>`:""}
+      <div class="row" style="gap:8px;margin-top:12px"><input class="in-f" id="vNew" placeholder="＋ 새 말 이름 입력" style="flex:1;min-width:0" autocomplete="off"><button class="btn" data-act="vwAddNew">추가</button></div>
+      ${other.length?`<div class="vsec" style="margin-top:18px">다른 승마장에서 한 말 <u data-act="vwOther">${VW.showOther?"접기":"보기"}</u></div>${VW.showOther?`<div class="vch sm">${other.map(chip).join("")}</div>`:""}`:""}`;
     foot=`<button class="btn block big" data-act="vwNext" ${VW.sel.length?"":"disabled"}>${VW.sel.length?VW.sel.length+"마리 선택 · 다음":"말을 선택해 주세요"}</button>`;
   } else if(st===3){
     const n=VW.sel[VW.idx]; vwEnsure(n); const c=vwCur(), last=VW.idx===VW.sel.length-1;
@@ -2215,6 +2219,7 @@ document.addEventListener("click", async e=>{
       if(!x.name) return toast("품목 이름을 입력해 주세요");
       closeSheet(); await put("stock",x); return toast("저장했어요");
     }
+    case "vwOther": VW.showOther=!VW.showOther; return vwRender();
     case "vwDate": vwSync(); VW.dateOpen=!VW.dateOpen; return vwRender();
     case "vwPlace": vwSync(); VW.v.place=d.id; VW.step=2; return vwRender();
     case "vwTog": { const k=VW.sel.indexOf(d.id); if(k>=0) VW.sel.splice(k,1); else VW.sel.push(d.id); return vwRender(); }
@@ -2365,7 +2370,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.15-13";
+const APP_VERSION="2026.11.15-14";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
