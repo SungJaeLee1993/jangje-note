@@ -126,7 +126,8 @@ h1{font-size:32px;letter-spacing:-.03em;margin:0;font-weight:800;line-height:1.1
 .vchips .hc{display:inline-flex;background:var(--primary);border-radius:99px;overflow:hidden;padding:0}
 .vchips .hc button{background:none!important;color:#fff!important;padding:6px 10px;font-size:13px;font-weight:600;border-radius:0!important}
 .vchips .hc button+button{padding-left:4px;opacity:.7}
-.item.vprog{display:flex;gap:5px;margin:4px 0 14px}.vprog i{flex:1;height:5px;border-radius:9px;background:#DFE2E8}.vprog i.on{background:#2B2B2B}.vwn{font-size:14px;font-weight:700;color:#6b7280;min-width:28px;text-align:right}
+.item.vg{margin-bottom:14px}.vgh{width:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap;text-align:left;padding:10px 4px 8px}.vgt{font-size:18px;font-weight:800}.vgm{font-size:12px;color:#8a909c;flex:1}.vgh i{font-style:normal;color:#8a909c}
+.vprog{display:flex;gap:5px;margin:4px 0 14px}.vprog i{flex:1;height:5px;border-radius:9px;background:#DFE2E8}.vprog i.on{background:#2B2B2B}.vwn{font-size:14px;font-weight:700;color:#6b7280;min-width:28px;text-align:right}
 .vh2{font-size:25px;font-weight:800;line-height:1.25;margin:0 0 4px}.vsub{font-size:13px;color:#8a909c;margin-bottom:14px}.vsub u{color:#4a5568}.vsec{font-size:12px;font-weight:700;color:#8a909c;margin:14px 2px 6px}.vsec small{font-weight:500}
 .vch{display:flex;flex-wrap:wrap;gap:8px}.vch button{padding:11px 16px;border-radius:14px;background:#fff;border:1.5px solid #E3E5EA;font-size:15px;font-weight:700;color:var(--ink)}.vch button.on{background:#2B2B2B;color:#fff;border-color:#2B2B2B}.vch button small{font-weight:600;opacity:.6;font-size:12px;margin-left:5px}.vch.sm button{padding:9px 13px;font-size:13px}
 .vnums{display:flex;gap:6px}.vnums button{flex:1;height:44px;border-radius:12px;background:#fff;border:1.5px solid #E3E5EA;font-weight:800;font-size:15px;color:var(--ink)}.vnums button.on{background:#2B2B2B;color:#fff;border-color:#2B2B2B}.vnums.dis{opacity:.35;pointer-events:none}
@@ -1797,11 +1798,9 @@ function renderVisits(){
       <div class="row" style="gap:28px;margin-top:4px"><div><b style="font-size:30px">${mv.length}</b><span style="opacity:.7"> 곳 방문</span></div><div><b style="font-size:30px">${mh}</b><span style="opacity:.7"> 마리 장제</span></div></div>
       <button class="btn white" style="margin-top:14px" data-act="newVisit">＋ 방문 기록하기</button>
     </div>
-    ${S.visits.length?S.visits.map(v=>{
-      const ym2=(v.date||"").slice(0,7), hd=ym2!==last?`<div class="vh">${+ym2.slice(5)}월 ${ym2.slice(0,4)}</div>`:""; last=ym2;
-      const hs=v.horses||[];
-      return `${hd}<button class="item" data-act="openVisit" data-id="${v.id}"><div class="t">${esc(v.place||"승마장")}</div><div class="m">${fmtDate(v.date)} · ${hs.length}마리</div>${hs.length?horseTable(hs):""}${v.note?`<div class="b">${esc(v.note)}</div>`:""}</button>`;
-    }).join(""):`<div class="empty">방문한 승마장과 장제한 말을 기록해 보세요<br><small>승마장 이름 · 날짜 · 말 이름만 넣으면 돼요</small></div>`}`;
+    ${S.visits.length?(()=>{ const g={}, order=[]; S.visits.forEach(v=>{ const p=v.place||"승마장 미입력"; if(!g[p]){ g[p]=[]; order.push(p); } g[p].push(v); }); const col=ls.get("fn_vcol",[]);
+      return order.map(p=>{ const vs=g[p], horses=new Set(vs.flatMap(v=>(v.horses||[]).map(h=>hObj(h).n))), closed=col.includes(p);
+        return `<div class="vg"><button class="vgh" data-act="vgTog" data-id="${esc(p)}"><span class="vgt">${esc(p)}</span><span class="vgm">${vs.length}회 · 말 ${horses.size}마리 · 최근 ${fmtDate(vs[0].date).replace(/ \(.\)/,"")}</span><i>${closed?"▸":"▾"}</i></button>${closed?"":vs.map(v=>{ const hs=v.horses||[]; return `<button class="item" data-act="openVisit" data-id="${v.id}"><div class="t">${fmtDate(v.date)}</div><div class="m">${hs.length}마리</div>${hs.length?horseTable(hs):""}${v.note?`<div class="b">${esc(v.note)}</div>`:""}</button>`; }).join("")}</div>`; }).join(""); })():`<div class="empty">방문한 승마장과 장제한 말을 기록해 보세요<br><small>승마장 이름 · 날짜 · 말 이름만 넣으면 돼요</small></div>`}`;
 }
 const stockBrands=()=>{ const b=[...new Set(S.stock.filter(x=>x.brand).map(x=>x.brand))]; return b.length?b:["기본"]; };
 const useBrand=()=>{ const bs=stockBrands(), b=ls.get("fn_stkBrand",bs[0]); return bs.includes(b)?b:bs[0]; };
@@ -2219,6 +2218,7 @@ document.addEventListener("click", async e=>{
       if(!x.name) return toast("품목 이름을 입력해 주세요");
       closeSheet(); await put("stock",x); return toast("저장했어요");
     }
+    case "vgTog": { const c=ls.get("fn_vcol",[]), k=c.indexOf(d.id); if(k>=0) c.splice(k,1); else c.push(d.id); ls.set("fn_vcol",c); return renderVisits(); }
     case "vwOther": VW.showOther=!VW.showOther; return vwRender();
     case "vwDate": vwSync(); VW.dateOpen=!VW.dateOpen; return vwRender();
     case "vwPlace": vwSync(); VW.v.place=d.id; VW.step=2; return vwRender();
@@ -2370,7 +2370,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.15-14";
+const APP_VERSION="2026.11.15-15";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
