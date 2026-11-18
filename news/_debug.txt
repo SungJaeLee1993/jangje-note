@@ -1,6 +1,0 @@
-decode: {'success': False, 'message': 'Failed to fetch data attributes from Google News.'}
-decode: {'success': False, 'message': 'Failed to fetch data attributes from Google News.'}
-decode: {'success': False, 'message': 'Failed to fetch data attributes from Google News.'}
-decode: {'success': False, 'message': 'Failed to fetch data attributes from Google News.'}
-decode: {'success': False, 'message': 'Failed to fetch data attributes from Google News.'}
-decode: {'success': False, 'message': 'Failed to fetch data attributes from Google News.'}
