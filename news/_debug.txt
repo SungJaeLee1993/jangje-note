@@ -1,0 +1,2 @@
+img: 인디포커스 URLError(TimeoutError('timed out'))
+img: 전북금강일보 URLError(TimeoutError('timed out'))
