@@ -1,1 +1,0 @@
-img: 전북금강일보 URLError(TimeoutError('timed out'))
