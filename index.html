@@ -1140,7 +1140,7 @@ function quickAdd(){
   if(tab==="notes") return editNote();
   if(tab==="logs" && logSub==="visits") return editVisit();
   if(tab==="logs" && logSub==="stock") return ls.get("fn_stkTab","편자")==="기타"?editStock():stockWizard();
-  if(tab==="logs") return editLog(logDay?{ id:uid(), date:logDay, title:"", place:"", mentor:"", horse:"", did:"", learned:"", next:"", photos:[], createdAt:Date.now() }:null);
+  if(tab==="logs") return logWizard(logDay||undefined);
   if(tab==="cards" && !review && !quiz) return studyMode==="cards" ? editCard() : editQuestion();
   if(tab==="todos") return todoView==="sch" ? editEvent() : editTodo();
   openSheet(`${head("새로 만들기")}
@@ -1816,6 +1816,69 @@ async function adjustStock(oldB,oldUse,newB,newUse){
     await put("stock",{...x,qty:Math.max(0,(x.qty||0)+d),checked:ymd()}); if(d<0) used-=d; }
   return used;
 }
+
+/* ===== 실습일지: 4단계 입력 (장소·선생님 → 한 일·말 → 배운 점 → 사진·확인) ===== */
+let LW=null;
+const LDID=["발 닦기","구편자 제거","삭제(트리밍)","편자 맞춤","못 박기","클린치","줄질 마무리","편자 성형","관찰만"], LTAG=["💡 팁","⚠ 주의","📌 외울 것","❓ 질문"];
+const lwTop=(arr,n)=>{ const m={}; arr.filter(Boolean).forEach(x=>m[x]=(m[x]||0)+1); return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,n); };
+function logWizard(day){
+  const l={ id:uid(), date:day||ymd(), title:"", place:"", mentor:"", horse:"", did:"", learned:"", next:"", photos:[], createdAt:Date.now() };
+  draftPhotos=[]; draftAudios=[]; LW={ l, step:1, did:[], hs:[], memo:"", dateOpen:false };
+  sheetCtx={ col:"logs", obj:l }; openSheet(`<div id="lw"></div>`); $("#sheet").classList.add("hasfoot"); lwRender();
+}
+function lwSync(){ const g=id=>document.getElementById(id), l=LW.l;
+  if(g("lDate")&&g("lDate").value) l.date=g("lDate").value;
+  if(g("lPlace")&&g("lPlace").value.trim()) l.place=g("lPlace").value.trim();
+  if(g("lMentor")&&g("lMentor").value.trim()) l.mentor=g("lMentor").value.trim();
+  if(g("lMemo")) LW.memo=g("lMemo").value.trim();
+  if(g("lLearn")) l.learned=g("lLearn").value;
+  if(g("lNext")) l.next=g("lNext").value.trim(); }
+function lwTitle(){ const l=LW.l, [,m,d]=l.date.split("-"); return l.title||`${+m}/${+d} ${l.place||""} 장제 실습`.replace("  "," ").trim(); }
+function lwBuild(){ lwSync(); const l=LW.l; return {...l, title:lwTitle(), did:[LW.did.join(", "),LW.memo].filter(Boolean).join("\n"), horse:LW.hs.join(", "), photos:draftPhotos, audios:draftAudios, updatedAt:Date.now()}; }
+function lwRender(){
+  const st=LW.step, l=LW.l; let body="", foot="";
+  const hd=`<div class="shead"><button class="link" data-act="${st>1?"lwBack":"close"}">${st>1?"‹ 이전":"닫기"}</button><h3>실습 일지</h3><span class="vwn">${st} / 4</span></div>`;
+  const prog=`<div class="vprog">${[1,2,3,4].map(i=>`<i class="${i<=st?"on":""}"></i>`).join("")}</div>`;
+  const chip=(act,k,v,on,sub)=>`<button class="${on?"on":""}" data-act="${act}" data-k="${k||""}" data-id="${esc(v)}">${on&&act==="lwTog"?"✓ ":""}${esc(v)}${sub?`<small>${sub}</small>`:""}</button>`;
+  if(st===1){
+    const pl=lwTop(S.logs.map(x=>x.place).concat(S.visits.map(x=>x.place)),8), mt=lwTop(S.logs.map(x=>x.mentor),6);
+    body=`<h2 class="vh2">오늘 어디였어요?</h2><div class="vsub">${fmtDate(l.date)}${l.date===ymd()?" · 오늘":""} · <u data-act="lwDate">날짜 바꾸기</u></div>
+      ${LW.dateOpen?`<input class="in-f" type="date" id="lDate" value="${esc(l.date)}" style="margin-bottom:10px">`:""}
+      <div class="vsec">장소</div>${pl.length?`<div class="vch">${pl.map(([p,n])=>chip("lwPick","place",p,p===l.place,n+"회")).join("")}</div>`:""}
+      <input class="in-f" id="lPlace" placeholder="직접 입력 (예: 이천 OO승마장)" value="${pl.some(x=>x[0]===l.place)?"":esc(l.place)}" style="margin-top:10px" autocomplete="off">
+      <div class="vsec" style="margin-top:18px">함께한 선생님 <small>(선택)</small></div>${mt.length?`<div class="vch">${mt.map(([p])=>chip("lwPick","mentor",p,p===l.mentor)).join("")}</div>`:""}
+      <input class="in-f" id="lMentor" placeholder="직접 입력" value="${mt.some(x=>x[0]===l.mentor)?"":esc(l.mentor)}" style="margin-top:10px" autocomplete="off">`;
+    foot=`<button class="btn block big" data-act="lwNext">다음</button>`;
+  } else if(st===2){
+    const vh=[...new Set(S.visits.filter(v=>v.date===l.date).flatMap(v=>(v.horses||[]).map(h=>hObj(h).n)))].filter(n=>!LW.hs.includes(n));
+    const cand=[...new Set([...LW.hs,...lwTop(allHorses().map(h=>h.n),10).map(x=>x[0])])];
+    const dids=[...new Set([...LDID,...LW.did])];
+    body=`<h2 class="vh2">오늘 한 일을<br>눌러 주세요</h2><div class="vsub">여러 개 선택 · 말·메모는 선택</div>
+      <div class="vch sm">${dids.map(t=>chip("lwTog","did",t,LW.did.includes(t))).join("")}</div>
+      <div class="row" style="gap:8px;margin-top:10px"><input class="in-f" id="lNewDid" placeholder="＋ 직접 추가" style="flex:1;min-width:0" autocomplete="off"><button class="btn" data-act="lwAdd" data-k="did">추가</button></div>
+      <div class="vsec" style="margin-top:18px">말 ${LW.hs.length?`<small>${LW.hs.length}마리</small>`:""}</div>
+      ${vh.length?`<button class="btn line block" style="margin-bottom:8px" data-act="lwPull">📋 오늘 방문기록의 말 ${vh.length}마리 불러오기</button>`:""}
+      ${cand.length?`<div class="vch sm">${cand.map(t=>chip("lwTog","hs",t,LW.hs.includes(t))).join("")}</div>`:""}
+      <div class="row" style="gap:8px;margin-top:10px"><input class="in-f" id="lNewHs" placeholder="＋ 말 이름" style="flex:1;min-width:0" autocomplete="off"><button class="btn" data-act="lwAdd" data-k="hs">추가</button></div>
+      <input class="in-f" id="lMemo" placeholder="한 줄 메모 (예: 번개는 앞발 제벽 얇음)" value="${esc(LW.memo)}" style="margin-top:14px" autocomplete="off">`;
+    foot=`<button class="btn block big" data-act="lwNext">다음</button>`;
+  } else if(st===3){
+    body=`<h2 class="vh2">배운 점을 남겨요</h2><div class="vsub">키보드의 🎤로 말하면 글로 써져요</div>
+      <div class="vch sm" style="margin-bottom:10px">${LTAG.map(t=>`<button data-act="lwTag" data-id="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+      <textarea class="in-f" id="lLearn" style="min-height:170px" placeholder="태그를 누르면 줄 앞에 붙어요 (예: 💡 팁 ▸ …)">${esc(l.learned)}</textarea>
+      <div class="vsec" style="margin-top:16px">다음에 할 것·질문 <small>(선택)</small></div>
+      <input class="in-f" id="lNext" placeholder="없으면 건너뛰어도 돼요" value="${esc(l.next)}" autocomplete="off">`;
+    foot=`<button class="btn block big" data-act="lwNext">다음</button>`;
+  } else {
+    const nl=(l.learned||"").split("\n").filter(x=>x.trim()).length;
+    body=`<h2 class="vh2">사진을 추가할까요?</h2><div class="vsub">발굽 · 편자 · 작업 과정</div><div class="ph" id="ph"></div>
+      <div class="vsec">요약</div><div class="vlast" style="color:var(--ink);font-size:13px;line-height:1.7"><b>${esc([l.place,l.mentor].filter(Boolean).join(" · ")||"장소 없음")}</b>한 일 ${LW.did.length} · 말 ${LW.hs.length}마리 · 배운 점 ${nl}줄<br><span style="color:#8a909c">제목: ${esc(lwTitle())}</span></div>
+      <label class="f">제목 바꾸기 (선택)</label><input class="in-f" id="lTitleIn" placeholder="${esc(lwTitle())}" autocomplete="off">
+      <button class="btn line block" style="margin-top:14px" data-act="lwMore">🎙 더 남기기 (녹음 · 전사문 · AI 정리)</button>`;
+    foot=`<button class="btn block big" data-act="lwSave">저장</button>`;
+  }
+  $("#lw").innerHTML=hd+prog+body+`<div class="sfoot">${foot}</div>`; if(st===4) drawPh();
+}
 /* ===== 방문기록: 4단계 입력 (장소 → 말 → 말별 확인 → 저장) ===== */
 let VW=null;
 const VCOND=["정상","썩음(구절)","백선","제벽 균열","깨짐","농양","타박","얇은 제저","평발","마름"], VTX=["패드","황산동","요오드","제유","약포장","힛바 편자"];
@@ -2232,6 +2295,16 @@ document.addEventListener("click", async e=>{
     case "vgTog": { const c=ls.get("fn_vcol",[]), k=c.indexOf(d.id); if(k>=0) c.splice(k,1); else c.push(d.id); ls.set("fn_vcol",c); return renderVisits(); }
     case "vwOther": VW.showOther=!VW.showOther; return vwRender();
     case "vwDate": vwSync(); VW.dateOpen=!VW.dateOpen; return vwRender();
+    case "lwDate": lwSync(); LW.dateOpen=!LW.dateOpen; return lwRender();
+    case "lwPick": { lwSync(); const o=$("#lPlace"),m=$("#lMentor"); LW.l[d.k]=LW.l[d.k]===d.id?"":d.id; if(d.k==="place"&&o) o.value=""; if(d.k==="mentor"&&m) m.value=""; return lwRender(); }
+    case "lwTog": { lwSync(); const a=d.k==="hs"?LW.hs:LW.did, i=a.indexOf(d.id); if(i>=0) a.splice(i,1); else a.push(d.id); return lwRender(); }
+    case "lwAdd": { lwSync(); const el=$(d.k==="hs"?"#lNewHs":"#lNewDid"), n=(el.value||"").trim(); if(!n) return; const a=d.k==="hs"?LW.hs:LW.did; if(!a.includes(n)) a.push(n); return lwRender(); }
+    case "lwPull": { lwSync(); S.visits.filter(v=>v.date===LW.l.date).forEach(v=>(v.horses||[]).forEach(h=>{ const n=hObj(h).n; if(n&&!LW.hs.includes(n)) LW.hs.push(n); })); return lwRender(); }
+    case "lwTag": { lwSync(); const t=LW.l.learned; LW.l.learned=(t&&!t.endsWith("\n")?t+"\n":t)+d.id+" ▸ "; lwRender(); const e=$("#lLearn"); e.focus(); e.setSelectionRange(e.value.length,e.value.length); return; }
+    case "lwNext": { lwSync(); if(LW.step===1&&!LW.l.place) return toast("장소를 골라 주세요"); LW.step=Math.min(4,LW.step+1); $("#sheet").scrollTop=0; return lwRender(); }
+    case "lwBack": lwSync(); LW.step=Math.max(1,LW.step-1); $("#sheet").scrollTop=0; return lwRender();
+    case "lwSave": { const t=$("#lTitleIn"); if(t&&t.value.trim()) LW.l.title=t.value.trim(); const l=lwBuild(); closeSheet(); await put("logs",l); return toast("저장했어요"); }
+    case "lwMore": { const t=$("#lTitleIn"); if(t&&t.value.trim()) LW.l.title=t.value.trim(); const l=lwBuild(); return editLog(l); }
     case "vwPlace": vwSync(); VW.v.place=d.id; VW.step=2; return vwRender();
     case "vwTog": { const k=VW.sel.indexOf(d.id); if(k>=0) VW.sel.splice(k,1); else VW.sel.push(d.id); return vwRender(); }
     case "vwAddNew": { const n=($("#vNew").value||"").trim(); if(!n) return; if(!VW.sel.includes(n)) VW.sel.push(n); return vwRender(); }
@@ -2364,7 +2437,7 @@ document.addEventListener("click", async e=>{
     case "hideUpd": return hideUpdBar();
     case "checkUpdate": return checkUpdate(true);
     case "quickAdd": return quickAdd();
-    case "newLog": return editLog();
+    case "newLog": return logWizard();
     case "newNote": return editNote();
     case "newCard": return editCard();
     case "goTimer": closeSheet(); tab="timer"; ls.set("fn_tab",tab); render(); window.scrollTo(0,0); return;
@@ -2381,7 +2454,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.24-2";
+const APP_VERSION="2026.11.24-3";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
