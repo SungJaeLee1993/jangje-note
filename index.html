@@ -603,7 +603,7 @@ async function init(){
     let persisted=false;
     try{ persisted = await navigator.storage?.persisted?.() || await navigator.storage?.persist?.() || false; }catch(e){}
     storageOK = true; setMode(persisted); updateBadge();
-    loadBank(); importLogs();
+    loadBank(); importLogs(); if(S.cards.some(c=>String(c.id).startsWith("pc-")&&(c.pv||0)<PC_VER)) addPhotoCards(true).then(render);
   }catch(e){
     console.error(e); modeInfo={text:"⚠︎ 저장 불가",warn:true};
     toast("이 브라우저에서는 저장할 수 없어요");
@@ -2111,15 +2111,17 @@ const PHOTO_CARDS = [
  ["pc-knife","장비·도구","이 도구의 이름은?","후프 나이프 (Hoof knife) — 제저·제차의 각질을 깎아내는 칼. ※한글 명칭은 교재로 확인 필요","img/t_knife.jpg"]
 ];
 const OLD_PHOTO_IDS=["pc-hoof","pc-hammer","pc-mallet","pc-nipper"];
-async function addPhotoCards(){
-  const t=ymd(), now=Date.now(); let n=0;
+const PC_VER=3;   // 사진 카드 내용(사진·이름)을 고칠 때마다 올려요 → 이미 추가된 카드도 최신으로 갱신
+async function addPhotoCards(silent){
+  const t=ymd(), now=Date.now(); let n=0, u=0;
   for(const oid of OLD_PHOTO_IDS) if(S.cards.some(c=>c.id===oid)) await del("cards",oid);
   for(let i=0;i<PHOTO_CARDS.length;i++){
     const [id,cat,front,back,src]=PHOTO_CARDS[i];
-    if(S.cards.some(c=>c.id===id)) continue;
-    await put("cards",{ id, cat, front, back, photos:[{src,type:"image"}], box:0, due:t, createdAt:now+i }); n++;
+    const photos=[{src:src+"?v="+PC_VER,type:"image"}], old=S.cards.find(c=>c.id===id);
+    if(old){ if((old.pv||0)<PC_VER){ await put("cards",{...old,cat,front,back,photos,pv:PC_VER}); u++; } continue; }   // 학습 진행(box·due)은 유지
+    await put("cards",{ id, cat, front, back, photos, box:0, due:t, createdAt:now+i, pv:PC_VER }); n++;
   }
-  toast(n?`사진 카드 ${n}장 추가됨`:"이미 모두 추가돼 있어요");
+  if(!silent) toast(n||u?`사진 카드 ${n?n+"장 추가":""}${n&&u?" · ":""}${u?u+"장 갱신":""}됨`:"이미 모두 최신이에요");
 }
 
 /* ---------- events ---------- */
@@ -2376,7 +2378,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.15-21";
+const APP_VERSION="2026.11.24-1";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
