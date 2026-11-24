@@ -603,7 +603,7 @@ async function init(){
     let persisted=false;
     try{ persisted = await navigator.storage?.persisted?.() || await navigator.storage?.persist?.() || false; }catch(e){}
     storageOK = true; setMode(persisted); updateBadge();
-    loadBank(); importLogs(); if(S.cards.some(c=>String(c.id).startsWith("pc-")&&(c.pv||0)<PC_VER)) addPhotoCards(true).then(render);
+    loadBank(); importLogs(); dedupeCards().then(n=>{ if(n) render(); }); if(S.cards.some(c=>String(c.id).startsWith("pc-")&&(c.pv||0)<PC_VER)) addPhotoCards(true).then(render);
   }catch(e){
     console.error(e); modeInfo={text:"⚠︎ 저장 불가",warn:true};
     toast("이 브라우저에서는 저장할 수 없어요");
@@ -2055,9 +2055,6 @@ $("#fileIn").onchange = async e=>{
 /* ---------- starter cards ---------- */
 const STARTER = [
  ["해부학","제벽 (Hoof wall)","발굽 바깥쪽의 단단한 각질 벽. 체중을 지지하고 내부 구조를 보호. 편자는 주로 제벽에 고정."],
- ["해부학","제저 (Sole)","발굽 바닥면. 약간 오목하며 직접 체중을 많이 받지 않도록 깎을 때 주의."],
- ["해부학","쐐기·제차 (Frog)","발굽 바닥 뒤쪽의 V자 탄력 구조. 충격 흡수, 접지력, 혈액 순환을 돕는다."],
- ["해부학","백선 (White line)","제벽과 제저가 만나는 경계선. 편자못을 박는 위치의 기준 — 백선 바깥쪽으로 박아야 안전."],
  ["해부학","제관 (Coronary band)","발굽 위쪽 테두리. 제벽이 이곳에서 자라 내려온다."],
  ["해부학","제골 (Coffin bone, P3)","발굽 안에 들어있는 가장 아래 뼈. 엽상층으로 제벽과 연결."],
  ["해부학","계골 · 관골 · 제골","발목 아래 지골 3개. 계골(P1) → 관골(P2) → 제골(P3) 순서."],
@@ -2066,10 +2063,6 @@ const STARTER = [
  ["질병","제엽염 (Laminitis)","엽상층의 염증. 심하면 제골이 회전·하강할 수 있는 위험한 질환."],
  ["질병","제차부란 (Thrush)","제차 주변 홈에 생기는 세균성 부패. 악취와 검은 분비물. 위생 관리가 중요."],
  ["해부학","제계축 (Hoof-pastern axis)","옆에서 봤을 때 계부와 발굽 앞면 각도가 일직선이 되는지. 장제 균형 판단의 기본."],
- ["장비·도구","니퍼 (Hoof nipper)","자라난 제벽을 잘라내는 대형 집게."],
- ["장비·도구","말굽칼 (Hoof knife) ※한글명 확인 필요","제저·제차의 각질을 얇게 깎아내는 칼."],
- ["장비·도구","라스프 (Rasp)","발굽 바닥을 평평하게 다듬고 외벽을 정리하는 큰 줄."],
- ["장비·도구","드라이빙 해머","편자못을 박는 망치. 못 끝을 구부리는 데도 쓴다."],
  ["장비·도구","앤빌 (Anvil)","편자를 두드려 성형하는 모루."],
  ["편자","클린치 (Clinch)","제벽 밖으로 나온 못 끝을 잘라 구부려 고정한 부분."],
  ["편자","클립 (Clip)","편자 앞쪽이나 옆에서 위로 세운 작은 돌출부. 편자가 밀리지 않게 잡아준다."],
@@ -2110,6 +2103,16 @@ const PHOTO_CARDS = [
  ["pc-t-forge","장비·도구","이 도구의 이름은?","포지 집게 (Forge tongs) — 화덕 불 속의 편자를 꺼내고 넣을 때 잡는다. ※한글 명칭 확인 필요","img/t_forge.jpg"],
  ["pc-knife","장비·도구","이 도구의 이름은?","후프 나이프 (Hoof knife) — 제저·제차의 각질을 깎아내는 칼. ※한글 명칭은 교재로 확인 필요","img/t_knife.jpg"]
 ];
+const DUP_FRONTS=new Set(["제저 (Sole)","쐐기·제차 (Frog)","백선 (White line)","니퍼 (Hoof nipper)","말굽칼 (Hoof knife) ※한글명 확인 필요","라스프 (Rasp)","드라이빙 해머"]);
+async function dedupeCards(){   // 사진 카드와 겹치는 기본 글자 카드 + 똑같은 앞면 카드 정리
+  let n=0; const seen=new Set();
+  for(const c of [...S.cards].sort((a,b)=>(b.box||0)-(a.box||0))){
+    if(String(c.id).startsWith("pc-")) continue;
+    const k=(c.cat||"")+"|"+(c.front||"").trim();
+    if((DUP_FRONTS.has(c.front)&&!(c.photos&&c.photos.length))||seen.has(k)){ await del("cards",c.id); n++; } else seen.add(k);
+  }
+  return n;
+}
 const OLD_PHOTO_IDS=["pc-hoof","pc-hammer","pc-mallet","pc-nipper"];
 const PC_VER=3;   // 사진 카드 내용(사진·이름)을 고칠 때마다 올려요 → 이미 추가된 카드도 최신으로 갱신
 async function addPhotoCards(silent){
@@ -2378,7 +2381,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.24-1";
+const APP_VERSION="2026.11.24-2";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
