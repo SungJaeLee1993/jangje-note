@@ -1,3 +1,1 @@
 img: 강건문화뉴스 URLError(TimeoutError('timed out'))
-decode: {'success': False, 'message': 'Failed to fetch data attributes from Google News.'}
-img: 제주팟닷컴 UnicodeEncodeError('ascii', 'GET /wp-content/uploads/2026/11/한국-마사회-방문.jpg?v=1795403761 HTTP/1.1', 32, 34, 'ordinal not in range(128)')
