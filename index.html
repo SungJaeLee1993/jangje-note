@@ -603,7 +603,7 @@ async function init(){
     let persisted=false;
     try{ persisted = await navigator.storage?.persisted?.() || await navigator.storage?.persist?.() || false; }catch(e){}
     storageOK = true; setMode(persisted); updateBadge();
-    loadBank(); importLogs(); dedupeCards().then(n=>{ if(n) render(); }); if(S.cards.some(c=>String(c.id).startsWith("pc-")&&(c.pv||0)<PC_VER)) addPhotoCards(true).then(render);
+    loadBank(); importLogs(); dedupeCards().then(()=>addExtraCards()).then(()=>render()); if(S.cards.some(c=>String(c.id).startsWith("pc-")&&(c.pv||0)<PC_VER)) addPhotoCards(true).then(render);
   }catch(e){
     console.error(e); modeInfo={text:"⚠︎ 저장 불가",warn:true};
     toast("이 브라우저에서는 저장할 수 없어요");
@@ -2176,6 +2176,15 @@ async function dedupeCards(){   // 사진 카드와 겹치는 기본 글자 카�
   }
   return n;
 }
+const EXTRA_CARDS=[
+ ["ex-nail-ehead","편자","E-Head 못","가장 흔한 기본 못이에요. 머리가 편자 홈에 쏙 들어가요."],
+ ["ex-nail-eslim","편자","E-Slim 못","몸통이 더 가늘어요. 발굽 벽이 얇아서 갈라질 수 있는 말에게 써요."]
+];
+async function addExtraCards(){   // 직접 추가한 카드 — 한 번만 넣고, 지워도 다시 안 생겨요
+  if(ls.get("fn_extra1",false)) return 0; let n=0; const t=ymd(), now=Date.now();
+  for(let i=0;i<EXTRA_CARDS.length;i++){ const [id,cat,front,back]=EXTRA_CARDS[i]; if(S.cards.some(c=>c.id===id)) continue; await put("cards",{id,cat,front,back,box:0,due:t,createdAt:now+i}); n++; }
+  ls.set("fn_extra1",true); return n;
+}
 const OLD_PHOTO_IDS=["pc-hoof","pc-hammer","pc-mallet","pc-nipper"];
 const PC_VER=3;   // 사진 카드 내용(사진·이름)을 고칠 때마다 올려요 → 이미 추가된 카드도 최신으로 갱신
 async function addPhotoCards(silent){
@@ -2454,7 +2463,7 @@ document.addEventListener("click", async e=>{
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !sheetOpen) render(); });
 
 $("#restoreIn").onchange = e => { const f=e.target.files[0]; e.target.value=""; if(f) importBackup(f); };
-const APP_VERSION="2026.11.24-3";
+const APP_VERSION="2026.11.25-1";
 /* ---------- 업데이트 미니게임 ---------- */
 const HSPR={run:[[0,0,229,150],[229,0,229,150],[458,0,229,150],[687,0,229,150],[916,0,229,150],[1145,0,229,150],[1374,0,229,150],[1603,0,229,150]],jump:[[1832,0,229,137],[2061,0,215,185],[2290,0,177,200],[2519,0,183,218]]};
 const horseImg=new Image(); horseImg.src="horse.png";
