@@ -1,1 +1,0 @@
-img: 강건문화뉴스 URLError(TimeoutError('timed out'))
